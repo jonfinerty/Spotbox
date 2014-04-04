@@ -3,8 +3,9 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Jamcast.Plugins.Spotify.API;
 using Nancy.Hosting.Self;
+using Spotbox.Player;
+using Spotbox.Player.Spotify;
 
 namespace JukeApi
 {

@@ -28,7 +28,7 @@ using System;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 
-namespace Spotbox.Player.spotify {
+namespace Spotbox.Player.Spotify {
 
     internal class Image : IDisposable {
 

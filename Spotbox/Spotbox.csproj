@@ -55,20 +55,20 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="api\Current.cs" />
-    <Compile Include="HaltableBufferedWaveProvider.cs" />
-    <Compile Include="Player.cs" />
-    <Compile Include="spotify\Album.cs" />
-    <Compile Include="spotify\Artist.cs" />
-    <Compile Include="spotify\Functions.cs" />
-    <Compile Include="spotify\Image.cs" />
-    <Compile Include="spotify\Playlist.cs" />
-    <Compile Include="spotify\PlaylistContainer.cs" />
-    <Compile Include="spotify\Session.cs" />
-    <Compile Include="spotify\Spotify.cs" />
-    <Compile Include="spotify\TopList.cs" />
-    <Compile Include="spotify\Track.cs" />
-    <Compile Include="spotify\User.cs" />
+    <Compile Include="Api\Current.cs" />
+    <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
+    <Compile Include="Player\Player.cs" />
+    <Compile Include="Player\Spotify\Album.cs" />
+    <Compile Include="Player\Spotify\Artist.cs" />
+    <Compile Include="Player\Spotify\Functions.cs" />
+    <Compile Include="Player\Spotify\Image.cs" />
+    <Compile Include="Player\Spotify\Playlist.cs" />
+    <Compile Include="Player\Spotify\PlaylistContainer.cs" />
+    <Compile Include="Player\Spotify\Session.cs" />
+    <Compile Include="Player\Spotify\Spotify.cs" />
+    <Compile Include="Player\Spotify\TopList.cs" />
+    <Compile Include="Player\Spotify\Track.cs" />
+    <Compile Include="Player\Spotify\User.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
