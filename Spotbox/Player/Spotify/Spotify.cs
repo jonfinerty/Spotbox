@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using libspotifydotnet;
@@ -44,11 +45,11 @@ namespace Spotbox.Player.Spotify
         private static bool _shutDown = false;
         private static object _syncObj = new object();
         private static object _initSync = new object();
-        private static bool _initted = false;
+        private static bool _initialised = false;
         private static bool _isRunning = false;
         private static Action<IntPtr> d_notify = new Action<IntPtr>(Session_OnNotifyMainThread);
         private static Action<IntPtr> d_on_logged_in = new Action<IntPtr>(Session_OnLoggedIn);
-        private static Thread _t;
+        private static Thread _spotifyThread;
         private static User _sessionUser;
 
         private const int RequestTimeout = 10;
@@ -61,91 +62,75 @@ namespace Spotbox.Player.Spotify
 
         public static bool IsRunning
         {
-
             get { return _isRunning; }
-
         }
+
         public static bool Login(byte[] appkey, string username, string password)
         {
+            Console.WriteLine("Logging into spotify with credentials");
+            Console.WriteLine("Username: {0}", username);
+            Console.WriteLine("Password: {0}", new String('*', password.Length));
 
-            postMessage(Session.Login, new object[] { appkey, username, password });
+            PostMessage(Session.Login, new object[] { appkey, username, password });
 
             _programSignal.WaitOne();
 
             if (Session.LoginError != libspotify.sp_error.OK)
             {
-
                 Console.WriteLine("Login failed: {0}", libspotify.sp_error_message(Session.LoginError));
                 return false;
             }
 
             return true;
-
         }
 
         public static void Initialize()
         {
-
-            if (_initted)
+            if (_initialised)
                 return;
 
             lock (_initSync)
             {
-
                 try
                 {
-
                     Session.OnNotifyMainThread += d_notify;
                     Session.OnLoggedIn += d_on_logged_in;
 
                     _programSignal = new AutoResetEvent(false);
 
-                    _t = new Thread(new ThreadStart(mainThread));
-                    _t.Start();
+                    _spotifyThread = new Thread(StartMainSpotifyThread);
+                    _spotifyThread.Start();
 
                     _programSignal.WaitOne();
 
-                    Console.WriteLine("Main thread running...");
+                    Console.WriteLine("Main spotify thread running...");
 
-                    _initted = true;
-
+                    _initialised = true;
                 }
                 catch
                 {
-
                     Session.OnNotifyMainThread -= d_notify;
                     Session.OnLoggedIn -= d_on_logged_in;
 
-                    if (_t != null)
+                    if (_spotifyThread != null)
                     {
-
                         try
                         {
-
-                            _t.Abort();
-
+                            _spotifyThread.Abort();
                         }
                         catch { }
                         finally
                         {
-
-                            _t = null;
-
+                            _spotifyThread = null;
                         }
-
                     }
-
                 }
-
             }
-
         }
 
         public static int GetUserCountry()
         {
-
             return Session.GetUserCountry();
-
         }
 
         public static List<Libspotifydotnet.PlaylistContainer.PlaylistInfo> GetAllSessionPlaylists()
@@ -374,6 +359,15 @@ namespace Spotbox.Player.Spotify
 
         }
 
+        public static void PlayDefaultPlaylist()
+        {
+            var playlistContainer = GetSessionUserPlaylists();
+            Console.WriteLine("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
+            var playlistInfo = playlistContainer.PlaylistInfos.FirstOrDefault(info => info.Name.Length > 0);
+            Console.WriteLine("Playing first playlist found");
+            var playlist = GetPlaylist(playlistInfo.PlaylistPtr, true);
+            Player.SetPlaylist(playlist);
+        }
 
         public static PlaylistContainer GetSessionUserPlaylists()
         {
@@ -389,18 +383,6 @@ namespace Spotbox.Player.Spotify
             var playlistContainerPtr = libspotify.sp_session_publishedcontainer_for_user_create(Session.GetSessionPtr(), userCanonicalNamePtr);
 
             return new PlaylistContainer(playlistContainerPtr);
-        }
-
-        public static string GetUserDisplayName(IntPtr userPtr)
-        {
-
-            WaitFor(delegate()
-            {
-                return libspotify.sp_user_is_loaded(userPtr);
-            }, RequestTimeout);
-
-            return Functions.PtrToString(libspotify.sp_user_full_name(userPtr));
-
         }
 
         public static User GetSessionUser()
@@ -434,42 +416,32 @@ namespace Spotbox.Player.Spotify
 
         public static void ShutDown()
         {
-
             lock (_syncObj)
             {
-
                 libspotify.sp_session_player_unload(Session.GetSessionPtr());
                 libspotify.sp_session_logout(Session.GetSessionPtr());
 
                 try
                 {
-
                     if (Libspotifydotnet.PlaylistContainer.GetSessionContainer() != null)
                     {
-
                         Libspotifydotnet.PlaylistContainer.GetSessionContainer().Dispose();
-
                     }
-
                 }
                 catch { }
 
                 if (_mainSignal != null)
                     _mainSignal.Set();
                 _shutDown = true;
-
             }
 
             _programSignal.WaitOne(2000, false);
-
         }
 
-        private static void mainThread()
+        private static void StartMainSpotifyThread()
         {
-
             try
             {
-
                 _mainSignal = new AutoResetEvent(false);
 
                 int timeout = Timeout.Infinite;
@@ -480,7 +452,6 @@ namespace Spotbox.Player.Spotify
 
                 while (true)
                 {
-
                     if (_shutDown)
                         break;
 
@@ -491,58 +462,39 @@ namespace Spotbox.Player.Spotify
 
                     lock (_syncObj)
                     {
-
                         try
                         {
-
                             if (Session.GetSessionPtr() != IntPtr.Zero)
                             {
-
                                 do
                                 {
-
                                     libspotify.sp_session_process_events(Session.GetSessionPtr(), out timeout);
-
                                 } while (timeout == 0);
-
                             }
-
                         }
                         catch (Exception ex)
                         {
-
                             Console.WriteLine("Exception invoking sp_session_process_events", ex);
-
                         }
 
                         while (_mq.Count > 0)
                         {
-
                             MainThreadMessage m = _mq.Dequeue();
                             m.d.Invoke(m.payload);
-
                         }
-
                     }
-
                 }
-
             }
             catch (Exception ex)
             {
-
-                Console.WriteLine("mainThread() unhandled exception", ex);
-
+                Console.WriteLine("StartMainSpotifyThread() unhandled exception: {0}", ex);
             }
             finally
             {
-
                 _isRunning = false;
                 if (_programSignal != null)
                     _programSignal.Set();
-
             }
-
         }
 
         public static void Session_OnLoggedIn(IntPtr obj)
@@ -559,18 +511,14 @@ namespace Spotbox.Player.Spotify
 
         }
 
-        private static void postMessage(MainThreadMessageDelegate d, object[] payload)
+        private static void PostMessage(MainThreadMessageDelegate d, object[] payload)
         {
-
-            _mq.Enqueue(new MainThreadMessage() { d = d, payload = payload });
+            _mq.Enqueue(new MainThreadMessage { d = d, payload = payload });
 
             lock (_syncObj)
             {
-
                 _mainSignal.Set();
-
             }
-
         }
 
     }
