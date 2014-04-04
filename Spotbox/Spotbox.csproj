@@ -55,7 +55,10 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Api\Current.cs" />
+    <Compile Include="Api\Controls.cs" />
+    <Compile Include="Api\Playing.cs" />
+    <Compile Include="Api\Playlist.cs" />
+    <Compile Include="Api\Playlists.cs" />
     <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
     <Compile Include="Player\Player.cs" />
     <Compile Include="Player\Spotify\Album.cs" />
