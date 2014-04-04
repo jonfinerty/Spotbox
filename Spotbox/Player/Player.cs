@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using libspotifydotnet;
 using NAudio.Wave;
+using Spotbox.Player.Libspotifydotnet;
 using Spotbox.Player.Spotify;
 
 namespace Spotbox.Player

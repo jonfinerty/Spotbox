@@ -61,17 +61,22 @@
     <Compile Include="Api\Playlists.cs" />
     <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
     <Compile Include="Player\Player.cs" />
-    <Compile Include="Player\Spotify\Album.cs" />
-    <Compile Include="Player\Spotify\Artist.cs" />
-    <Compile Include="Player\Spotify\Functions.cs" />
-    <Compile Include="Player\Spotify\Image.cs" />
-    <Compile Include="Player\Spotify\Playlist.cs" />
+    <Compile Include="Player\Libspotifydotnet\Album.cs" />
+    <Compile Include="Player\Libspotifydotnet\Artist.cs" />
+    <Compile Include="Player\Libspotifydotnet\Functions.cs" />
+    <Compile Include="Player\Libspotifydotnet\Image.cs" />
+    <Compile Include="Player\Libspotifydotnet\Playlist.cs" />
+    <Compile Include="Player\Libspotifydotnet\PlaylistContainer.cs" />
+    <Compile Include="Player\Libspotifydotnet\Session.cs" />
+    <Compile Include="Player\Libspotifydotnet\Spotify.cs" />
+    <Compile Include="Player\Libspotifydotnet\TopList.cs" />
+    <Compile Include="Player\Libspotifydotnet\Track.cs" />
+    <Compile Include="Player\Libspotifydotnet\User.cs" />
     <Compile Include="Player\Spotify\PlaylistContainer.cs" />
-    <Compile Include="Player\Spotify\Session.cs" />
+    <Compile Include="Player\Spotify\PlaylistInfo.cs" />
     <Compile Include="Player\Spotify\Spotify.cs" />
-    <Compile Include="Player\Spotify\TopList.cs" />
-    <Compile Include="Player\Spotify\Track.cs" />
     <Compile Include="Player\Spotify\User.cs" />
+    <Compile Include="Player\Spotify\Wait.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -85,6 +90,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

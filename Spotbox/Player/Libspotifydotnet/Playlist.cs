@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 
-namespace Spotbox.Player.Spotify {
+namespace Spotbox.Player.Libspotifydotnet {
 
     public class Playlist : IDisposable {             
         

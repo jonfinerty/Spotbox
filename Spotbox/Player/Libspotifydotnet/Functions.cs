@@ -30,7 +30,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using libspotifydotnet;
 
-namespace Spotbox.Player.Spotify {
+namespace Spotbox.Player.Libspotifydotnet {
 
     public static class Functions {
 

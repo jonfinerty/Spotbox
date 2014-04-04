@@ -1,4 +1,7 @@
-﻿using Nancy;
+﻿
+using Nancy;
+using Newtonsoft.Json;
+using Spotbox.Player.Spotify;
 
 namespace Spotbox.Api
 {
@@ -7,8 +10,11 @@ namespace Spotbox.Api
         public Playlists()
         {
             Get["/playlists"] = x =>
-            {
-                return 200;
+            {                
+                var playlistContainer = Spotify.GetSessionUserPlaylists();
+                var response = (Response)JsonConvert.SerializeObject(playlistContainer);
+                response.ContentType = "application/json";
+                return response;
             };
         }
     }

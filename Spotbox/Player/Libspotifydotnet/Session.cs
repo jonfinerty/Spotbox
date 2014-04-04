@@ -29,7 +29,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 
-namespace Spotbox.Player.Spotify {
+namespace Spotbox.Player.Libspotifydotnet {
 
     public static class Session {
         

@@ -29,12 +29,13 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using libspotifydotnet;
-using Spotbox.Player.Libspotifydotnet;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Player.Libspotifydotnet
 {
+
     public class Spotify
     {
+
         private delegate bool Test();
         public delegate void MainThreadMessageDelegate(object[] args);
 
@@ -49,9 +50,8 @@ namespace Spotbox.Player.Spotify
         private static Action<IntPtr> d_notify = new Action<IntPtr>(Session_OnNotifyMainThread);
         private static Action<IntPtr> d_on_logged_in = new Action<IntPtr>(Session_OnLoggedIn);
         private static Thread _t;
-        private static User _sessionUser;
 
-        private const int RequestTimeout = 10;
+        private static readonly int REQUEST_TIMEOUT = 30;
 
         private class MainThreadMessage
         {
@@ -148,29 +148,29 @@ namespace Spotbox.Player.Spotify
 
         }
 
-        public static List<Libspotifydotnet.PlaylistContainer.PlaylistInfo> GetAllSessionPlaylists()
+        public static List<PlaylistContainer.PlaylistInfo> GetAllSessionPlaylists()
         {
 
-            WaitFor(delegate
+            waitFor(delegate
             {
-                return Libspotifydotnet.PlaylistContainer.GetSessionContainer().IsLoaded
-                    && Libspotifydotnet.PlaylistContainer.GetSessionContainer().PlaylistsAreLoaded;
-            }, RequestTimeout);
+                return PlaylistContainer.GetSessionContainer().IsLoaded
+                    && PlaylistContainer.GetSessionContainer().PlaylistsAreLoaded;
+            }, REQUEST_TIMEOUT);
 
-            return Libspotifydotnet.PlaylistContainer.GetSessionContainer().GetAllPlaylists();
+            return PlaylistContainer.GetSessionContainer().GetAllPlaylists();
 
         }
 
-        public static List<Libspotifydotnet.PlaylistContainer.PlaylistInfo> GetPlaylists(Libspotifydotnet.PlaylistContainer.PlaylistInfo playlist)
+        public static List<PlaylistContainer.PlaylistInfo> GetPlaylists(PlaylistContainer.PlaylistInfo playlist)
         {
 
-            WaitFor(delegate
+            waitFor(delegate
             {
-                return Libspotifydotnet.PlaylistContainer.GetSessionContainer().IsLoaded
-                    && Libspotifydotnet.PlaylistContainer.GetSessionContainer().PlaylistsAreLoaded;
-            }, RequestTimeout);
+                return PlaylistContainer.GetSessionContainer().IsLoaded
+                    && PlaylistContainer.GetSessionContainer().PlaylistsAreLoaded;
+            }, REQUEST_TIMEOUT);
 
-            return Libspotifydotnet.PlaylistContainer.GetSessionContainer().GetChildren(playlist);
+            return PlaylistContainer.GetSessionContainer().GetChildren(playlist);
 
         }
 
@@ -182,10 +182,10 @@ namespace Spotbox.Player.Spotify
             if (playlist == null)
                 return null;
 
-            bool success = WaitFor(delegate
+            bool success = waitFor(delegate
             {
                 return playlist.IsLoaded && needTracks ? playlist.TracksAreLoaded : true;
-            }, RequestTimeout);
+            }, REQUEST_TIMEOUT);
 
             return playlist;
 
@@ -203,10 +203,10 @@ namespace Spotbox.Player.Spotify
 
                 Playlist p = Playlist.Get(inboxPtr);
 
-                bool success = WaitFor(delegate
+                bool success = waitFor(delegate
                 {
                     return p.IsLoaded;
-                }, RequestTimeout);
+                }, REQUEST_TIMEOUT);
 
                 return p;
 
@@ -239,10 +239,10 @@ namespace Spotbox.Player.Spotify
 
                 Playlist p = Playlist.Get(starredPtr);
 
-                bool success = WaitFor(delegate
+                bool success = waitFor(delegate
                 {
                     return p.IsLoaded;
-                }, RequestTimeout);
+                }, REQUEST_TIMEOUT);
 
                 return p;
 
@@ -273,10 +273,10 @@ namespace Spotbox.Player.Spotify
 
             TopList toplist = TopList.BeginBrowse(type, region);
 
-            bool success = WaitFor(delegate
+            bool success = waitFor(delegate
             {
                 return toplist.IsLoaded;
-            }, RequestTimeout);
+            }, REQUEST_TIMEOUT);
 
             return toplist;
 
@@ -293,10 +293,10 @@ namespace Spotbox.Player.Spotify
             using (Image img = Image.Load(libspotify.sp_image_create(Session.GetSessionPtr(), coverPtr)))
             {
 
-                WaitFor(delegate()
+                waitFor(delegate()
                 {
                     return img.IsLoaded;
-                }, RequestTimeout);
+                }, REQUEST_TIMEOUT);
 
                 int bytes = 0;
                 IntPtr bufferPtr = libspotify.sp_image_data(img.ImagePtr, out bytes);
@@ -316,19 +316,19 @@ namespace Spotbox.Player.Spotify
             using (Album album = new Album(albumPtr))
             {
 
-                if (!WaitFor(delegate
+                if (!waitFor(delegate
                 {
                     return libspotify.sp_album_is_loaded(album.AlbumPtr);
-                }, RequestTimeout))
+                }, REQUEST_TIMEOUT))
                     Console.WriteLine("GetAlbumTracks() TIMEOUT waiting for album to load");
 
                 if (album.BeginBrowse())
                 {
 
-                    if (!WaitFor(delegate()
+                    if (!waitFor(delegate()
                     {
                         return album.IsBrowseComplete;
-                    }, RequestTimeout))
+                    }, REQUEST_TIMEOUT))
                         Console.WriteLine("GetAlbumTracks() TIMEOUT waiting for browse to complete");
 
                 }
@@ -348,19 +348,19 @@ namespace Spotbox.Player.Spotify
             using (Artist artist = new Artist(artistPtr))
             {
 
-                if (!WaitFor(delegate
+                if (!waitFor(delegate
                 {
                     return libspotify.sp_artist_is_loaded(artist.ArtistPtr);
-                }, RequestTimeout))
+                }, REQUEST_TIMEOUT))
                     Console.WriteLine("GetArtistAlbums() TIMEOUT waiting for artist to load");
 
                 if (artist.BeginBrowse())
                 {
 
-                    if (!WaitFor(delegate()
+                    if (!waitFor(delegate()
                     {
                         return artist.IsBrowseComplete;
-                    }, RequestTimeout))
+                    }, REQUEST_TIMEOUT))
                         Console.WriteLine("GetArtistAlbums() TIMEOUT waiting for browse to complete");
 
                 }
@@ -374,59 +374,92 @@ namespace Spotbox.Player.Spotify
 
         }
 
-
-        public static PlaylistContainer GetSessionUserPlaylists()
+        public static PlaylistContainer GetUserPlaylists(IntPtr userPtr)
         {
-            if (Session.GetSessionPtr() == IntPtr.Zero)
-                throw new InvalidOperationException("No valid session.");
 
-            return new PlaylistContainer(libspotify.sp_session_playlistcontainer(Session.GetSessionPtr()));
+            IntPtr ptr = IntPtr.Zero;
+
+            try
+            {
+
+                ptr = libspotify.sp_session_publishedcontainer_for_user_create(Session.GetSessionPtr(), GetUserCanonicalNamePtr(userPtr));
+
+                PlaylistContainer c = PlaylistContainer.Get(ptr);
+
+                waitFor(delegate
+                {
+                    return c.IsLoaded
+                        && c.PlaylistsAreLoaded;
+                }, REQUEST_TIMEOUT);
+
+                return c;
+
+            }
+            finally
+            {
+
+                //try {
+
+                //    if (ptr != IntPtr.Zero)
+                //        libspotify.sp_playlistcontainer_release(ptr);
+
+                //} catch { }
+
+            }
+
         }
 
-        public static PlaylistContainer GetUserPlaylists(User user)
+        public static IntPtr GetUserCanonicalNamePtr(IntPtr userPtr)
         {
-            var userCanonicalNamePtr = libspotify.sp_user_canonical_name(user.UserPtr);
-            var playlistContainerPtr = libspotify.sp_session_publishedcontainer_for_user_create(Session.GetSessionPtr(), userCanonicalNamePtr);
 
-            return new PlaylistContainer(playlistContainerPtr);
+            waitFor(delegate()
+            {
+                return libspotify.sp_user_is_loaded(userPtr);
+            }, REQUEST_TIMEOUT);
+
+            return libspotify.sp_user_canonical_name(userPtr);
+
         }
 
         public static string GetUserDisplayName(IntPtr userPtr)
         {
 
-            WaitFor(delegate()
+            waitFor(delegate()
             {
                 return libspotify.sp_user_is_loaded(userPtr);
-            }, RequestTimeout);
+            }, REQUEST_TIMEOUT);
 
             return Functions.PtrToString(libspotify.sp_user_full_name(userPtr));
 
         }
 
-        public static User GetSessionUser()
+        public static User GetUser()
         {
-            if (_sessionUser != null)
-            {
-                return _sessionUser;
-            }
-
             var userPtr = libspotify.sp_session_user(Session.GetSessionPtr());
-            _sessionUser = new User(userPtr);
-
-            return _sessionUser;
+            waitFor(delegate()
+            {
+                return libspotify.sp_user_is_loaded(userPtr);
+            }, REQUEST_TIMEOUT);
+            return new User(userPtr);
         }
 
-        private static bool WaitFor(Test t, int timeout)
+        private static bool waitFor(Test t, int timeout)
         {
-            var start = DateTime.Now;
+
+            DateTime start = DateTime.Now;
 
             while (DateTime.Now.Subtract(start).Seconds < timeout)
             {
+
                 if (t.Invoke())
                 {
+
                     return true;
+
                 }
+
                 Thread.Sleep(10);
+
             }
 
             return false;
@@ -444,10 +477,10 @@ namespace Spotbox.Player.Spotify
                 try
                 {
 
-                    if (Libspotifydotnet.PlaylistContainer.GetSessionContainer() != null)
+                    if (PlaylistContainer.GetSessionContainer() != null)
                     {
 
-                        Libspotifydotnet.PlaylistContainer.GetSessionContainer().Dispose();
+                        PlaylistContainer.GetSessionContainer().Dispose();
 
                     }
 

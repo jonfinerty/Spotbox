@@ -2,7 +2,7 @@
 using Nancy;
 
 using Newtonsoft.Json;
-using Spotbox.Player.Spotify;
+using Spotbox.Player.Libspotifydotnet;
 
 namespace Spotbox.Api
 {

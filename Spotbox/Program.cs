@@ -4,16 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Nancy.Hosting.Self;
-using Spotbox.Player;
-using Spotbox.Player.Spotify;
+using Spotbox.Player.Libspotifydotnet;
 
-namespace JukeApi
+namespace Spotbox
 {
     class Program
     {
         static void Main(string[] args)
         {
-
             LoginToSpotify();
             Thread.Sleep(5000); // wait for playlists to be populated
             var hostConfiguration = new HostConfiguration
@@ -35,14 +33,12 @@ namespace JukeApi
 
         private static void SetDefaultPlaylist()
         {
-            var user = Spotify.GetUser();
-            var playlistContainer = Spotify.GetUserPlaylists(user.UserPtr);
-            var playlistInfos = playlistContainer.GetAllPlaylists();
-            Console.WriteLine("Found {0} playlists", playlistInfos.Count);
-            var playlistInfo = playlistInfos.Where(info => info.Name.Length > 0).Skip(1).FirstOrDefault();
-            Console.WriteLine(Session.IsLoggedIn);            
-            var playlist = Spotify.GetPlaylist(playlistInfo.Pointer, true);
-            Player.SetPlaylist(playlist);
+            var playlistContainer = Player.Spotify.Spotify.GetSessionUserPlaylists();            
+            Console.WriteLine("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
+            var playlistInfo = playlistContainer.PlaylistInfos.Where(info => info.Name.Length > 0).Skip(1).FirstOrDefault();
+            Console.WriteLine(Session.IsLoggedIn);
+            var playlist = Spotify.GetPlaylist(playlistInfo.PlaylistPtr, true);
+            Player.Player.SetPlaylist(playlist);
         }
 
         private static void LoginToSpotify()
