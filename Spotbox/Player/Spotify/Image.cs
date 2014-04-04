@@ -25,10 +25,10 @@
  */
 
 using System;
-using libspotifydotnet;
 using System.Runtime.InteropServices;
+using libspotifydotnet;
 
-namespace Jamcast.Plugins.Spotify.API {
+namespace Spotbox.Player.spotify {
 
     internal class Image : IDisposable {
 

@@ -30,7 +30,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using libspotifydotnet;
 
-namespace Jamcast.Plugins.Spotify.API {
+namespace Spotbox.Player.Spotify {
 
     public class Spotify {
 

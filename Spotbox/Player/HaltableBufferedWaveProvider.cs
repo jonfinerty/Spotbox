@@ -2,7 +2,7 @@
 using System.Linq;
 using NAudio.Wave;
 
-namespace Spotbox
+namespace Spotbox.Player
 {
     public class HaltableBufferedWaveProvider : IWaveProvider
     {

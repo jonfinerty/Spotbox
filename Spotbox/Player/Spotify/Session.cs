@@ -29,7 +29,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 
-namespace Jamcast.Plugins.Spotify.API {
+namespace Spotbox.Player.Spotify {
 
     public static class Session {
         

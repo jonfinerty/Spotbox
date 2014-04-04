@@ -1,14 +1,10 @@
 ﻿using System.IO;
-
-using Jamcast.Plugins.Spotify.API;
-
-using JukeApi;
-
 using Nancy;
 
 using Newtonsoft.Json;
+using Spotbox.Player.spotify;
 
-namespace Spotbox.api
+namespace Spotbox.Api
 {
     public class Current : NancyModule
     {
@@ -16,7 +12,7 @@ namespace Spotbox.api
         {
             Get["/current"] = x =>
             {
-                var track = Player.CurrentlyPlayingTrack;
+                var track = Player.Player.CurrentlyPlayingTrack;
                 var response = (Response) JsonConvert.SerializeObject(track);
                 response.ContentType = "application/json";
                 return response;
@@ -24,31 +20,31 @@ namespace Spotbox.api
 
             Post["/current/play"] = x =>
             {
-                Player.Play();
+                Player.Player.Play();
                 return HttpStatusCode.OK;
             };
 
             Post["/current/pause"] = x =>
             {
-                Player.Pause();
+                Player.Player.Pause();
                 return HttpStatusCode.OK;
             };
 
             Post["/current/next"] = x =>
             {
-                Player.Next();
+                Player.Player.Next();
                 return HttpStatusCode.OK;
             };
 
             Post["/current/prev"] = x =>
             {
-                Player.Previous();
+                Player.Player.Previous();
                 return HttpStatusCode.OK;
             };
 
             Get["/current/cover.jpeg"] = x =>
             {
-                return new ByteArrayResponse(Spotify.GetAlbumArt(Player.CurrentlyPlayingTrack.Album.AlbumPtr), "image/jpeg");
+                return new ByteArrayResponse(Spotify.GetAlbumArt(Player.Player.CurrentlyPlayingTrack.Album.AlbumPtr), "image/jpeg");
             };
         }
 

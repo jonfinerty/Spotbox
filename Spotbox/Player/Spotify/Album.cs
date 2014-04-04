@@ -30,7 +30,7 @@ using System.Runtime.InteropServices;
 using libspotifydotnet;
 using Newtonsoft.Json;
 
-namespace Jamcast.Plugins.Spotify.API {
+namespace Spotbox.Player.Spotify {
 
     public class Album : IDisposable {
 

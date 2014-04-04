@@ -27,7 +27,7 @@
 using System;
 using libspotifydotnet;
 
-namespace Jamcast.Plugins.Spotify.API {
+namespace Spotbox.Player.Spotify {
 
     public class User {
 

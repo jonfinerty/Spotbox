@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using Jamcast.Plugins.Spotify.API;
 using libspotifydotnet;
 using NAudio.Wave;
-using Spotbox;
+using Spotbox.Player.Spotify;
 
-namespace JukeApi
+namespace Spotbox.Player
 {
     static class Player
     {

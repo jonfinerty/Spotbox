@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using libspotifydotnet;
 using Newtonsoft.Json;
 
-namespace Jamcast.Plugins.Spotify.API {
+namespace Spotbox.Player.Spotify {
 
     public class Track {
         
