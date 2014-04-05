@@ -15,7 +15,11 @@ namespace Spotbox.Player.Spotify
         {
             UserPtr = userPtr;
             Wait.For(() => libspotify.sp_user_is_loaded(userPtr), 10);
+            SetUserData(userPtr);
+        }
 
+        private void SetUserData(IntPtr userPtr)
+        {
             CanonicalName = Functions.PtrToString(libspotify.sp_user_canonical_name(userPtr));
             DisplayName = Functions.PtrToString(libspotify.sp_user_display_name(userPtr));
 
@@ -27,7 +31,6 @@ namespace Spotbox.Player.Spotify
             {
                 Console.WriteLine("User does not have a full name set");
             }
-
         }
     }
 }

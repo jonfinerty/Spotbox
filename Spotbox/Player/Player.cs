@@ -3,8 +3,9 @@ using System.Linq;
 using System.Threading;
 using libspotifydotnet;
 using NAudio.Wave;
-using Spotbox.Player.Libspotifydotnet;
 using Spotbox.Player.Spotify;
+using Playlist = Spotbox.Player.Spotify.Playlist;
+using Track = Spotbox.Player.Spotify.Track;
 
 namespace Spotbox.Player
 {
@@ -28,7 +29,7 @@ namespace Spotbox.Player
 
             _waveProvider = new HaltableBufferedWaveProvider(_waveFormat)
             {
-                BufferDuration = new TimeSpan(0, 0, Convert.ToInt32(CurrentlyPlayingTrack.Seconds)),
+                BufferDuration = new TimeSpan(0, 0, CurrentlyPlayingTrack.Length),
                 DiscardOnBufferOverflow = true
             };
             _waveOutDevice.Init(_waveProvider);
@@ -67,23 +68,23 @@ namespace Spotbox.Player
         public static void Next()
         {
             playlistPosition++;
-            var nextTrack = CurrentPlaylist.GetTracks()[playlistPosition];
+            var nextTrack = CurrentPlaylist.Tracks[playlistPosition];
             Play(nextTrack);
         }
 
         public static void Previous()
         {
             playlistPosition--;
-            var nextTrack = CurrentPlaylist.GetTracks()[playlistPosition];
-            Play(nextTrack);
+            var prevTrack = CurrentPlaylist.Tracks[playlistPosition];
+            Play(prevTrack);
         }
 
         public static void SetPlaylist(Playlist playlist)
         {
             CurrentPlaylist = playlist;
-            Console.WriteLine("Playing playlist: {0}", playlist.Name);
+            Console.WriteLine("Playing playlist: {0}", playlist.PlaylistInfo.Name);
             playlistPosition = 0;
-            Play(playlist.GetTracks().First());
+            Play(playlist.Tracks.First());
         }
 
         private static void Play(Track track)
@@ -113,33 +114,35 @@ namespace Spotbox.Player
                 _interrupt = false;
                 _complete = false;
 
+                var avail = libspotify.sp_track_get_availability(Session.GetSessionPtr(), trackPtr);
+
+                if (avail != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
+                {
+                    Console.WriteLine((String.Format("Track is unavailable ({0}).", avail)));
+                    return;                    
+                }
+
                 Session.OnAudioDataArrived += Session_OnAudioDataArrived;
                 Session.OnAudioStreamComplete += Session_OnAudioStreamComplete;
 
-                libspotify.sp_error error = Session.LoadPlayer(trackPtr);
+                var error = Session.LoadPlayer(trackPtr);
 
                 if (error != libspotify.sp_error.OK)
                 {
-                    throw new Exception(
-                        String.Format("[Spotify] {0}", libspotify.sp_error_message(error)));
+                    throw new Exception(String.Format("[Spotify] {0}", libspotify.sp_error_message(error)));
                 }
 
-                libspotify.sp_availability avail = libspotify.sp_track_get_availability(Session.GetSessionPtr(), trackPtr);
-
-                if (avail != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
-                    throw new Exception(
-                        String.Format("Track is unavailable ({0}).", avail));
-
-                Session.Play();                
+                Session.Play();
 
                 while (!_interrupt && !_complete)
                 {
-                    Thread.Sleep(50);
+                    Thread.Sleep(10);
                 }                
 
                 Session.OnAudioDataArrived -= Session_OnAudioDataArrived;
                 Session.OnAudioStreamComplete -= Session_OnAudioStreamComplete;
 
+                Session.Pause();
                 Session.UnloadPlayer();
             }
         }

@@ -40,6 +40,8 @@ namespace Spotbox
                 Spotify.PlayDefaultPlaylist();
 
                 Console.ReadLine();
+                
+                Spotify.ShutDown();
             }
         }
 

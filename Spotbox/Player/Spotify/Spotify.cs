@@ -159,93 +159,48 @@ namespace Spotbox.Player.Spotify
 
         }
 
-        public static Playlist GetPlaylist(IntPtr playlistPtr, bool needTracks)
-        {
-
-            Playlist playlist = Playlist.Get(playlistPtr);
-
-            if (playlist == null)
-                return null;
-
-            bool success = WaitFor(delegate
-            {
-                return playlist.IsLoaded && needTracks ? playlist.TracksAreLoaded : true;
-            }, RequestTimeout);
-
-            return playlist;
-
-        }
-
         public static Playlist GetInboxPlaylist()
         {
 
-            IntPtr inboxPtr = IntPtr.Zero;
+            var inboxPlaylistPtr = IntPtr.Zero;
 
             try
             {
-
-                inboxPtr = libspotify.sp_session_inbox_create(Session.GetSessionPtr());
-
-                Playlist p = Playlist.Get(inboxPtr);
-
-                bool success = WaitFor(delegate
-                {
-                    return p.IsLoaded;
-                }, RequestTimeout);
-
-                return p;
-
+                inboxPlaylistPtr = libspotify.sp_session_inbox_create(Session.GetSessionPtr());
+                var playlist = new Playlist(inboxPlaylistPtr);
+                return playlist;
             }
             finally
             {
-
                 try
                 {
-
-                    if (inboxPtr != IntPtr.Zero)
-                        libspotify.sp_playlist_release(inboxPtr);
-
+                    if (inboxPlaylistPtr != IntPtr.Zero)
+                        libspotify.sp_playlist_release(inboxPlaylistPtr);
                 }
                 catch { }
-
             }
-
         }
 
         public static Playlist GetStarredPlaylist()
         {
-
             IntPtr starredPtr = IntPtr.Zero;
 
             try
             {
-
                 starredPtr = libspotify.sp_session_starred_create(Session.GetSessionPtr());
-
-                Playlist p = Playlist.Get(starredPtr);
-
-                bool success = WaitFor(delegate
-                {
-                    return p.IsLoaded;
-                }, RequestTimeout);
+                var p = new Playlist(starredPtr);
 
                 return p;
-
             }
             finally
             {
-
                 try
                 {
-
                     if (starredPtr != IntPtr.Zero)
                         libspotify.sp_playlist_release(starredPtr);
-
                 }
                 catch { }
-
             }
-
         }
 
         public static TopList GetToplist(string data)
@@ -265,39 +220,10 @@ namespace Spotbox.Player.Spotify
 
             return toplist;
 
-        }
-
-        public static byte[] GetAlbumArt(IntPtr albumPtr)
-        {
-
-            IntPtr coverPtr = libspotify.sp_album_cover(albumPtr, libspotify.sp_image_size.SP_IMAGE_SIZE_LARGE);
-
-            // NOTE: in API 10 sp_image_is_loaded() always returns true despite empty byte buffer, so using
-            // callbacks now to determine when loaded.  Not sure how this will behave with cached images...
-
-            using (Image img = Image.Load(libspotify.sp_image_create(Session.GetSessionPtr(), coverPtr)))
-            {
-
-                WaitFor(delegate()
-                {
-                    return img.IsLoaded;
-                }, RequestTimeout);
-
-                int bytes = 0;
-                IntPtr bufferPtr = libspotify.sp_image_data(img.ImagePtr, out bytes);
-                byte[] buffer = new byte[bytes];
-                Marshal.Copy(bufferPtr, buffer, 0, buffer.Length);
-
-                Console.WriteLine("{0}, {1}", buffer.Length, libspotify.sp_image_is_loaded(img.ImagePtr));
-
-                return buffer;
-            }
-
-        }
+        }   
 
         public static IntPtr[] GetAlbumTracks(IntPtr albumPtr)
         {
-
             using (Album album = new Album(albumPtr))
             {
 
@@ -324,7 +250,6 @@ namespace Spotbox.Player.Spotify
                 return album.TrackPtrs.ToArray();
 
             }
-
         }
 
         public static IntPtr[] GetArtistAlbums(IntPtr artistPtr)
@@ -354,18 +279,17 @@ namespace Spotbox.Player.Spotify
                     return null;
 
                 return artist.AlbumPtrs.ToArray();
-
             }
-
         }
 
         public static void PlayDefaultPlaylist()
         {
             var playlistContainer = GetSessionUserPlaylists();
             Console.WriteLine("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
-            var playlistInfo = playlistContainer.PlaylistInfos.FirstOrDefault(info => info.Name.Length > 0);
+            var playlistInfo = playlistContainer.PlaylistInfos.Where(info => info.TrackCount > 0).Skip(1).FirstOrDefault();
             Console.WriteLine("Playing first playlist found");
-            var playlist = GetPlaylist(playlistInfo.PlaylistPtr, true);
+            var playlist = new Playlist(playlistInfo.PlaylistPtr);
+
             Player.SetPlaylist(playlist);
         }
 
@@ -444,8 +368,7 @@ namespace Spotbox.Player.Spotify
             {
                 _mainSignal = new AutoResetEvent(false);
 
-                int timeout = Timeout.Infinite;
-                DateTime lastEvents = DateTime.MinValue;
+                var timeout = Timeout.Infinite;
 
                 _isRunning = true;
                 _programSignal.Set(); // this signals to program thread that loop is running   
@@ -479,7 +402,7 @@ namespace Spotbox.Player.Spotify
 
                         while (_mq.Count > 0)
                         {
-                            MainThreadMessage m = _mq.Dequeue();
+                            var m = _mq.Dequeue();
                             m.d.Invoke(m.payload);
                         }
                     }
@@ -499,16 +422,12 @@ namespace Spotbox.Player.Spotify
 
         public static void Session_OnLoggedIn(IntPtr obj)
         {
-
             _programSignal.Set();
-
         }
 
         public static void Session_OnNotifyMainThread(IntPtr sessionPtr)
         {
-
             _mainSignal.Set();
-
         }
 
         private static void PostMessage(MainThreadMessageDelegate d, object[] payload)

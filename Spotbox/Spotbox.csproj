@@ -75,9 +75,12 @@
     <Compile Include="Player\Libspotifydotnet\TopList.cs" />
     <Compile Include="Player\Libspotifydotnet\Track.cs" />
     <Compile Include="Player\Libspotifydotnet\User.cs" />
+    <Compile Include="Player\Spotify\Playlist.cs" />
     <Compile Include="Player\Spotify\PlaylistContainer.cs" />
     <Compile Include="Player\Spotify\PlaylistInfo.cs" />
+    <Compile Include="Player\Spotify\Session.cs" />
     <Compile Include="Player\Spotify\Spotify.cs" />
+    <Compile Include="Player\Spotify\Track.cs" />
     <Compile Include="Player\Spotify\User.cs" />
     <Compile Include="Player\Spotify\Wait.cs" />
     <Compile Include="Program.cs" />
@@ -86,6 +89,9 @@
   <ItemGroup>
     <None Include="App.example.config" />
     <None Include="App.config" />
+    <None Include="libspotify.lib">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

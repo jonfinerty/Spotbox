@@ -1,5 +1,4 @@
-﻿
-using Nancy;
+﻿using Nancy;
 using Newtonsoft.Json;
 using Spotbox.Player.Spotify;
 

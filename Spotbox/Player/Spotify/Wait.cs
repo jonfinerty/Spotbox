@@ -15,7 +15,7 @@ namespace Spotbox.Player.Spotify
                 {
                     return true;
                 }
-                Thread.Sleep(50);
+                Thread.Sleep(250);
             }
 
             return false;

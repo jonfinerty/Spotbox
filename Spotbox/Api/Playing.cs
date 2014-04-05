@@ -2,7 +2,6 @@
 using Nancy;
 
 using Newtonsoft.Json;
-using Spotbox.Player.Libspotifydotnet;
 
 namespace Spotbox.Api
 {
@@ -20,7 +19,7 @@ namespace Spotbox.Api
 
             Get["/playing/cover.jpeg"] = x =>
             {
-                var imageBytes = Spotify.GetAlbumArt(Player.Player.CurrentlyPlayingTrack.Album.AlbumPtr);
+                var imageBytes = Player.Player.CurrentlyPlayingTrack.GetAlbumArt();
                 return new ByteArrayResponse(imageBytes, "image/jpeg");
             };
         }
