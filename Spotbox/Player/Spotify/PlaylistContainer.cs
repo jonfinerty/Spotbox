@@ -6,79 +6,50 @@ using Newtonsoft.Json;
 
 namespace Spotbox.Player.Spotify
 {
-    public class PlaylistContainer : IDisposable
+    public class PlaylistContainer
     {
         [JsonIgnore]
         public IntPtr PlaylistContainerPtr { get; private set; }
+        private IntPtr _callbacksPtr;
+
         [JsonProperty("Playlists")]
         public List<PlaylistInfo> PlaylistInfos { get; private set; }
-
-        private delegate void playlist_added_delegate(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr);
-        private delegate void playlist_removed_delegate(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr);
-        private delegate void playlist_moved_delegate(IntPtr containerPtr, IntPtr playlistPtr, int position, int new_position, IntPtr userDataPtr);
-        private delegate void container_loaded_delegate(IntPtr containerPtr, IntPtr userDataPtr);
-
-        private container_loaded_delegate fn_container_loaded_delegate;
-        private playlist_added_delegate fn_playlist_added_delegate;
-        private playlist_moved_delegate fn_playlist_moved_delegate;
-        private playlist_removed_delegate fn_playlist_removed_delegate;
-        
-        private IntPtr _callbacksPtr;
-        private bool _disposed;
 
         public PlaylistContainer(IntPtr playlistContainerPtr)
         {
             PlaylistContainerPtr = playlistContainerPtr;
-            InitCallbacks();
+            AddCallbacks();
             Wait.For(() => IsLoaded() && PlaylistInfosAreLoaded(), 10);            
         }
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
+  
         ~PlaylistContainer()
         {
-            Dispose(false);
+            libspotify.sp_playlistcontainer_remove_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
         }
 
-        private void Dispose(bool disposing)
+
+        private delegate void PlaylistAddedDelegate(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr);
+        private delegate void PlaylistRemovedDelegate(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr);
+        private delegate void PlaylistMovedDelegate(IntPtr containerPtr, IntPtr playlistPtr, int oldPosition, int newPosition, IntPtr userDataPtr);
+        private delegate void ContainerLoadedDelegate(IntPtr containerPtr, IntPtr userDataPtr);
+
+        private void AddCallbacks()
         {
-            if (_disposed)
+            var containerLoadedDelegate = new ContainerLoadedDelegate(PlayListContainerLoaded);
+            var playlistAddedDelegate = new PlaylistAddedDelegate(PlaylistAdded);
+            var playlistMovedDelegate = new PlaylistMovedDelegate(PlaylistMoved);
+            var playlistRemovedDelegate = new PlaylistRemovedDelegate(PlaylistRemoved);
+
+            var playlistcontainerCallbacks = new libspotify.sp_playlistcontainer_callbacks
             {
-                return;
-            }
+                container_loaded = Marshal.GetFunctionPointerForDelegate(containerLoadedDelegate),
+                playlist_added = Marshal.GetFunctionPointerForDelegate(playlistAddedDelegate),
+                playlist_moved = Marshal.GetFunctionPointerForDelegate(playlistMovedDelegate),
+                playlist_removed = Marshal.GetFunctionPointerForDelegate(playlistRemovedDelegate)
+            };
 
-            if (disposing)
-            {
-                SafeRemoveCallbacks();
-            }
-
-            _disposed = true;
-        }
-
-        #endregion
-
-        private void InitCallbacks()
-        {
-            fn_container_loaded_delegate = new container_loaded_delegate(container_loaded);
-            fn_playlist_added_delegate = new playlist_added_delegate(playlist_added);
-            fn_playlist_moved_delegate = new playlist_moved_delegate(playlist_moved);
-            fn_playlist_removed_delegate = new playlist_removed_delegate(playlist_removed);
-
-            libspotify.sp_playlistcontainer_callbacks callbacks = new libspotify.sp_playlistcontainer_callbacks();
-            callbacks.container_loaded = Marshal.GetFunctionPointerForDelegate(fn_container_loaded_delegate);
-            callbacks.playlist_added = Marshal.GetFunctionPointerForDelegate(fn_playlist_added_delegate);
-            callbacks.playlist_moved = Marshal.GetFunctionPointerForDelegate(fn_playlist_moved_delegate);
-            callbacks.playlist_removed = Marshal.GetFunctionPointerForDelegate(fn_playlist_removed_delegate);
-
-            _callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(callbacks));
-            Marshal.StructureToPtr(callbacks, _callbacksPtr, true);
-
+            _callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(playlistcontainerCallbacks));
+            Marshal.StructureToPtr(playlistcontainerCallbacks, _callbacksPtr, true);
             libspotify.sp_playlistcontainer_add_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
         }
 
@@ -111,42 +82,25 @@ namespace Spotbox.Player.Spotify
             return true;
         }
 
-        private void SafeRemoveCallbacks()
+        private void PlayListContainerLoaded(IntPtr containerPtr, IntPtr userDataPtr)
         {
-            try
-            {
-                if (PlaylistContainerPtr == IntPtr.Zero)
-                    return;
-
-                if (_callbacksPtr == IntPtr.Zero)
-                    return;
-
-                libspotify.sp_playlistcontainer_remove_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
-            }
-            catch { }
-
+            Console.WriteLine("PlayListContainerLoaded");
         }
 
-        private void container_loaded(IntPtr containerPtr, IntPtr userDataPtr)
+        private void PlaylistAdded(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            Console.WriteLine("container_loaded");
+            Console.WriteLine("Playlist added at position {0}", position);
         }
 
-        private void playlist_added(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
+        private void PlaylistMoved(IntPtr containerPtr, IntPtr playlistPtr, int oldPosition, int newPosition, IntPtr userDataPtr)
         {
-            Console.WriteLine("playlist_added at position {0}", position);
+            Console.WriteLine("Playlist moved from {0} to {1}", oldPosition, newPosition);
         }
 
-        private void playlist_moved(IntPtr containerPtr, IntPtr playlistPtr, int position, int new_position, IntPtr userDataPtr)
+        private void PlaylistRemoved(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            Console.WriteLine("playlist_moved from {0} to {1}", position, new_position);
-        }
-
-        private void playlist_removed(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
-        {
-            Console.WriteLine("playlist_removed");
+            Console.WriteLine("Playlist Removed from position {0}", position);
         }
 
     }
-
 }
