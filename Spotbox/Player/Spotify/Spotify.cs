@@ -284,13 +284,20 @@ namespace Spotbox.Player.Spotify
 
         public static void PlayDefaultPlaylist()
         {
-            var playlistContainer = GetSessionUserPlaylists();
-            Console.WriteLine("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
-            var playlistInfo = playlistContainer.PlaylistInfos.Where(info => info.TrackCount > 0).Skip(1).FirstOrDefault();
+            var playlistInfos = GetAllPlaylists();
+            var playlistInfo = playlistInfos.Where(info => info.TrackCount > 0).Skip(1).FirstOrDefault();
             Console.WriteLine("Playing first playlist found");
             var playlist = new Playlist(playlistInfo.PlaylistPtr);
 
             Player.SetPlaylist(playlist);
+            Player.Play();
+        }
+
+        public static List<PlaylistInfo> GetAllPlaylists()
+        {
+            var playlistContainer = GetSessionUserPlaylists();
+            Console.WriteLine("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
+            return playlistContainer.PlaylistInfos;
         }
 
         public static PlaylistContainer GetSessionUserPlaylists()

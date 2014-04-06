@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using System.IO;
+using System.Linq;
 using Nancy.Hosting.Self;
 using Spotbox.Player.Spotify;
 
@@ -37,7 +38,7 @@ namespace Spotbox
                 Console.WriteLine("Hosting Spotbox at: {0}", hostUri);
                 host.Start();
 
-                Spotify.PlayDefaultPlaylist();
+                PlayLastPlaying();
 
                 Console.ReadLine();
                 
@@ -45,6 +46,25 @@ namespace Spotbox
             }
         }
 
+        private static void PlayLastPlaying()
+        {
+            var lastPlaylistName = Settings.Default.CurrentPlaylistName;
+            if (lastPlaylistName != null)
+            {
+                var found = Player.Player.SetPlaylist(lastPlaylistName);
+                if (found)
+                {
+                    var lastPosition = Settings.Default.CurrentPlaylistPosition;
+
+                    Player.Player.SetPlaylistPosition(lastPosition);
+                    Player.Player.Play();
+                }
+
+                return;
+            }
+
+            Spotify.PlayDefaultPlaylist();
+        }
         
     }
 }

@@ -13,21 +13,24 @@ namespace Spotbox.Player
     {
         public static Track CurrentlyPlayingTrack { get; private set; }
         public static Playlist CurrentPlaylist { get; private set; }
-        private static int playlistPosition = 0;
+        private static int _playlistPosition;
         private static HaltableBufferedWaveProvider _waveProvider;
         private static WaveOut _waveOutDevice;
         private static readonly EventHandler<StoppedEventArgs> PlaybackStoppedHandler = (sender, args) => Next();
+        private static bool _complete;
+        private static bool _interrupt;
+        private static readonly object SyncObj = new object();
+        private static bool _newTrack;
 
+        const int SampleRate = 44100;
+        const int Channels = 2;
+        private static readonly WaveFormat WaveFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, SampleRate * Channels, 1, SampleRate * 2 * Channels, Channels, 16);
 
         private static void InitialisePlayer()
         {            
-            const int sampleRate = 44100;
-            const int channels = 2;
-            _waveFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, sampleRate * channels, 1, sampleRate * 2 * channels, channels, 16);        
-
             _waveOutDevice = new WaveOut { DesiredLatency = 200 };
 
-            _waveProvider = new HaltableBufferedWaveProvider(_waveFormat)
+            _waveProvider = new HaltableBufferedWaveProvider(WaveFormat)
             {
                 BufferDuration = new TimeSpan(0, 0, CurrentlyPlayingTrack.Length),
                 DiscardOnBufferOverflow = true
@@ -57,59 +60,111 @@ namespace Spotbox.Player
 
         public static void Play()
         {
-            _waveOutDevice.Play();
+            if (CurrentlyPlayingTrack == null)
+            {
+                Play(CurrentPlaylist.Tracks[_playlistPosition]);
+            }
+            else
+            {
+                _waveOutDevice.Play();
+            }
         }
 
         public static void Pause()
-        {            
-            _waveOutDevice.Pause(); 
+        {
+            if (_waveOutDevice != null)
+            {
+                _waveOutDevice.Pause();
+            }
+        }
+
+        public static bool IsPlaying()
+        {
+            if (_waveOutDevice == null)
+            {
+                return false;
+            }
+
+            return _waveOutDevice.PlaybackState == PlaybackState.Playing;
         }
 
         public static void Next()
         {
-            playlistPosition++;
-            var nextTrack = CurrentPlaylist.Tracks[playlistPosition];
+            _playlistPosition++;
+            var nextTrack = CurrentPlaylist.Tracks[_playlistPosition];
             Play(nextTrack);
         }
 
         public static void Previous()
         {
-            playlistPosition--;
-            var prevTrack = CurrentPlaylist.Tracks[playlistPosition];
+            _playlistPosition--;
+            var prevTrack = CurrentPlaylist.Tracks[_playlistPosition];
             Play(prevTrack);
         }
 
         public static void SetPlaylist(Playlist playlist)
         {
             CurrentPlaylist = playlist;
-            Console.WriteLine("Playing playlist: {0}", playlist.PlaylistInfo.Name);
-            playlistPosition = 0;
-            Play(playlist.Tracks.First());
+            Console.WriteLine("Setting playlist: {0}", playlist.PlaylistInfo.Name);
+            _playlistPosition = 0;
+        }
+
+        public static bool SetPlaylist(String playlistName)
+        {
+            var playlistInfos = Spotify.Spotify.GetAllPlaylists();
+            var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name == playlistName);
+            if (matchingPlaylistInfo != null)
+            {
+                SetPlaylist(matchingPlaylistInfo.GetPlaylist());
+                return true;
+            }
+
+            Console.WriteLine("No playlist found with name: {0}", playlistName);
+            return false;
+        }
+
+        public static void SetPlaylistPosition(int position)
+        {
+            var wasPlaying = IsPlaying();
+            Pause();
+            if (position < 0)
+            {
+                position = 0;
+            } else if (position >= CurrentPlaylist.PlaylistInfo.TrackCount)
+            {
+                position = CurrentPlaylist.PlaylistInfo.TrackCount - 1;
+            }
+            CurrentlyPlayingTrack = null;
+            _playlistPosition = position;
+            Console.WriteLine("Setting playlist position: {0}", _playlistPosition);
+            if (wasPlaying)
+            {
+                Play();
+            }
         }
 
         private static void Play(Track track)
         {
             Console.WriteLine("Playing track: {0} - {1}", track.Name, track.Artists.First());
-            CurrentlyPlayingTrack = track;            
+            CurrentlyPlayingTrack = track;
+            SaveTrackToSettings();
             _newTrack = true;
             Action<IntPtr> action = FetchTrackData;
             action.BeginInvoke(track.TrackPtr, null, null);            
         }
 
-        private static bool _complete;
-
-        private static bool _interrupt;
-
-        private static object _syncObj = new object();        
-
-        private static bool _newTrack = false;
-        private static WaveFormat _waveFormat;
+        private static void SaveTrackToSettings()
+        {
+            Settings.Default.CurrentPlaylistName = CurrentPlaylist.PlaylistInfo.Name;
+            Settings.Default.CurrentPlaylistPosition = _playlistPosition;
+            Settings.Default.Save();
+        }
 
         private static void FetchTrackData(IntPtr trackPtr)
         {
             _interrupt = true;
 
-            lock (_syncObj)
+            lock (SyncObj)
             {
                 _interrupt = false;
                 _complete = false;

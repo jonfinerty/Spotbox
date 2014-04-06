@@ -41,5 +41,10 @@ namespace Spotbox.Player.Spotify
             IsInRam = libspotify.sp_playlist_is_in_ram(Session.GetSessionPtr(), PlaylistPtr);
             OfflineStatus = libspotify.sp_playlist_get_offline_status(Session.GetSessionPtr(), PlaylistPtr);
         }
+
+        public Playlist GetPlaylist()
+        {
+            return new Playlist(PlaylistPtr);
+        }
     }
 }
