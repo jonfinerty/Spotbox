@@ -91,15 +91,11 @@ namespace Spotbox.Player
         public static void Next()
         {
             SetPlaylistPosition(_playlistPosition + 1);
-            var nextTrack = CurrentPlaylist.Tracks[_playlistPosition];
-            Play(nextTrack);
         }
 
         public static void Previous()
         {
             SetPlaylistPosition(_playlistPosition - 1);
-            var prevTrack = CurrentPlaylist.Tracks[_playlistPosition];
-            Play(prevTrack);
         }
 
         public static void SetPlaylist(Playlist playlist)
