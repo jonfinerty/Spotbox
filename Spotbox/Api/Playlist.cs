@@ -1,5 +1,6 @@
 ﻿using Nancy;
 using Newtonsoft.Json;
+using Spotbox.Player;
 
 namespace Spotbox.Api
 {
@@ -9,7 +10,7 @@ namespace Spotbox.Api
         {
             Get["/playlist"] = x =>
             {
-                var playlist = Player.Player.CurrentPlaylist;
+                var playlist = Audio.CurrentPlaylist;
                 var response = (Response)JsonConvert.SerializeObject(playlist);
                 response.ContentType = "application/json";
                 return response;

@@ -2,6 +2,7 @@
 using Nancy;
 using Nancy.ModelBinding;
 using Spotbox.Api.Models;
+using Spotbox.Player;
 
 namespace Spotbox.Api
 {
@@ -11,7 +12,7 @@ namespace Spotbox.Api
         {
             Post["/speak"] = x =>
             {
-                Player.Player.Pause();
+                Audio.Pause();
                 var speach = this.Bind<Speech>();
                 var synthesizer = new SpeechSynthesizer
                 {
@@ -20,7 +21,7 @@ namespace Spotbox.Api
                 };
                 
                 synthesizer.Speak(speach.Script);
-                Player.Player.Play();
+                Audio.Play();
                 return HttpStatusCode.OK;
             };
         }

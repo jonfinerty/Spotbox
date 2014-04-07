@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Configuration;
 using System.IO;
-using System.Linq;
-using Nancy.Hosting.Self;
+using Microsoft.Owin.Hosting;
+using Spotbox.Player;
 using Spotbox.Player.Spotify;
 
 namespace Spotbox
@@ -22,21 +22,14 @@ namespace Spotbox
             var port = Convert.ToInt32(ConfigurationManager.AppSettings["PortNumber"]);
 
             StartServer(port);
-
         }
 
         private static void StartServer(int port)
         {
-            var hostConfiguration = new HostConfiguration
-            {
-                UrlReservations = new UrlReservations { CreateAutomatically = true }
-            };
-
-            var hostUri = new Uri("http://localhost:" + port);
-            using (var host = new NancyHost(hostConfiguration, hostUri))
+            var hostUri = "http://+:" + port;
+            using (WebApp.Start<Startup>(hostUri))
             {
                 Console.WriteLine("Hosting Spotbox at: {0}", hostUri);
-                host.Start();
 
                 PlayLastPlaying();
 
@@ -49,15 +42,15 @@ namespace Spotbox
         private static void PlayLastPlaying()
         {
             var lastPlaylistName = Settings.Default.CurrentPlaylistName;
-            if (lastPlaylistName != null)
+            if (lastPlaylistName != "")
             {
-                var found = Player.Player.SetPlaylist(lastPlaylistName);
+                var found = Audio.SetPlaylist(lastPlaylistName);
                 if (found)
                 {
                     var lastPosition = Settings.Default.CurrentPlaylistPosition;
 
-                    Player.Player.SetPlaylistPosition(lastPosition);
-                    Player.Player.Play();
+                    Audio.SetPlaylistPosition(lastPosition);
+                    Audio.Play();
                 }
 
                 return;

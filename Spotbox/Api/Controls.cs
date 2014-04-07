@@ -1,4 +1,5 @@
 ﻿using Nancy;
+using Spotbox.Player;
 
 namespace Spotbox.Api
 {
@@ -8,25 +9,25 @@ namespace Spotbox.Api
         {
             Post["/play"] = x =>
             {
-                Player.Player.Play();
+                Audio.Play();
                 return HttpStatusCode.OK;
             };
 
             Post["/pause"] = x =>
             {
-                Player.Player.Pause();
+                Audio.Pause();
                 return HttpStatusCode.OK;
             };
 
             Post["/next"] = x =>
             {
-                Player.Player.Next();
+                Audio.Next();
                 return HttpStatusCode.OK;
             };
 
             Post["/prev"] = x =>
             {
-                Player.Player.Previous();
+                Audio.Previous();
                 return HttpStatusCode.OK;
             };
         }   

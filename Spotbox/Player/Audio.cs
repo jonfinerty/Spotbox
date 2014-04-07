@@ -2,14 +2,14 @@
 using System.Linq;
 using System.Threading;
 using libspotifydotnet;
+using Microsoft.AspNet.SignalR;
 using NAudio.Wave;
+using Newtonsoft.Json;
 using Spotbox.Player.Spotify;
-using Playlist = Spotbox.Player.Spotify.Playlist;
-using Track = Spotbox.Player.Spotify.Track;
 
 namespace Spotbox.Player
 {
-    static class Player
+    static class Audio
     {
         public static Track CurrentlyPlayingTrack { get; private set; }
         public static Playlist CurrentPlaylist { get; private set; }
@@ -90,14 +90,14 @@ namespace Spotbox.Player
 
         public static void Next()
         {
-            _playlistPosition++;
+            SetPlaylistPosition(_playlistPosition + 1);
             var nextTrack = CurrentPlaylist.Tracks[_playlistPosition];
             Play(nextTrack);
         }
 
         public static void Previous()
         {
-            _playlistPosition--;
+            SetPlaylistPosition(_playlistPosition - 1);
             var prevTrack = CurrentPlaylist.Tracks[_playlistPosition];
             Play(prevTrack);
         }
@@ -145,12 +145,19 @@ namespace Spotbox.Player
 
         private static void Play(Track track)
         {
-            Console.WriteLine("Playing track: {0} - {1}", track.Name, track.Artists.First());
+            Console.WriteLine("Playing track: {0} - {1}", track.Name, Enumerable.First<string>(track.Artists));            
             CurrentlyPlayingTrack = track;
             SaveTrackToSettings();
             _newTrack = true;
+            BroadcastTrack();
             Action<IntPtr> action = FetchTrackData;
             action.BeginInvoke(track.TrackPtr, null, null);            
+        }
+
+        private static void BroadcastTrack()
+        {
+            var hubContext = GlobalHost.ConnectionManager.GetHubContext<PushHub>();
+            hubContext.Clients.All.newTrack(JsonConvert.SerializeObject(CurrentlyPlayingTrack));
         }
 
         private static void SaveTrackToSettings()

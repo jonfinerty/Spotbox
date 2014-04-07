@@ -289,8 +289,8 @@ namespace Spotbox.Player.Spotify
             Console.WriteLine("Playing first playlist found");
             var playlist = new Playlist(playlistInfo.PlaylistPtr);
 
-            Player.SetPlaylist(playlist);
-            Player.Play();
+            Audio.SetPlaylist(playlist);
+            Audio.Play();
         }
 
         public static List<PlaylistInfo> GetAllPlaylists()
