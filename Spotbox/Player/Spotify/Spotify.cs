@@ -404,7 +404,7 @@ namespace Spotbox.Player.Spotify
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("Exception invoking sp_session_process_events", ex);
+                            Console.WriteLine("Exception invoking sp_session_process_events {0}", ex);
                         }
 
                         while (_mq.Count > 0)

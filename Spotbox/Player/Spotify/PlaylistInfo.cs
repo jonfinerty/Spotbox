@@ -11,7 +11,7 @@ namespace Spotbox.Player.Spotify
         public IntPtr PlaylistPtr { get; private set; }
 
         public string Name { get; private set; }
-        public int TrackCount { get; private set; }
+        public int TrackCount { get; set; }
         public string Description { get; private set; }
         public int SubscriberCount { get; private set; }
 

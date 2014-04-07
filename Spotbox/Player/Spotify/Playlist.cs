@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using Newtonsoft.Json;
@@ -51,9 +52,9 @@ namespace Spotbox.Player.Spotify
 
         #region Callbacks
 
-        private delegate void TracksAddedDelegate(IntPtr playlistPtr, IntPtr tracksPtr, int trackCount, int position, IntPtr userDataPtr);
-        private delegate void TracksRemovedDelegate(IntPtr playlistPtr, IntPtr tracksPtr, int trackCount, IntPtr userDataPtr);
-        private delegate void TracksMovedDelegate(IntPtr playlistPtr, IntPtr tracksPtr, int trackCount, int newPosition, IntPtr userDataPtr);
+        private delegate void TracksAddedDelegate(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int position, IntPtr userDataPtr);
+        private delegate void TracksRemovedDelegate(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, IntPtr userDataPtr);
+        private delegate void TracksMovedDelegate(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int newPosition, IntPtr userDataPtr);
         private delegate void PlaylistRenamedDelegate(IntPtr playlistPtr, IntPtr userDataPtr);
         private delegate void PlaylistStateChangedDelegate(IntPtr playlistPtr, IntPtr userDataPtr);
         private delegate void PlaylistUpdateInProgressDelegate(IntPtr playlistPtr, bool done, IntPtr userDataPtr);
@@ -121,11 +122,47 @@ namespace Spotbox.Player.Spotify
             libspotify.sp_playlist_add_callbacks(PlaylistPtr, _callbacksPtr, IntPtr.Zero);
         }
 
-        private void TracksAdded(IntPtr playlistPtr, IntPtr tracksPtr, int trackCount, int position, IntPtr userDataPtr) { }
+        private void TracksAdded(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int position, IntPtr userDataPtr)
+        {
+            Console.WriteLine("{0} Tracks added", trackCount);
+            foreach (var trackPtr in tracksPtr)
+            {
+                Tracks.Insert(position, new Track(trackPtr));
+                PlaylistInfo.TrackCount++;
+                position++;
+            }
+        }
 
-        private void TracksRemoved(IntPtr playlistPtr, IntPtr tracksPtr, int trackCount, IntPtr userDataPtr) { }
+        private void TracksRemoved(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, IntPtr userDataPtr)
+        {
+            Console.WriteLine("{0} Tracks removed", trackCount);
+            foreach (var trackPtr in tracksPtr)
+            {
+                var trackIndex = (int)trackPtr;
+                for (var i = 0; i < trackCount; i++)
+                {
+                    Tracks.RemoveAt(trackIndex);
+                    PlaylistInfo.TrackCount--;
+                }
+            }
+        }
 
-        private void TracksMoved(IntPtr playlistPtr, IntPtr tracksPtr, int trackCount, int newPosition, IntPtr userDataPtr) { }
+        private void TracksMoved(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int newPosition, IntPtr userDataPtr)
+        {
+            Console.WriteLine("{0} Tracks moved", trackCount);
+            foreach (var trackPtr in tracksPtr)
+            {
+                var tracksIndex = (int)trackPtr;
+                var movingTracks = Tracks.GetRange(tracksIndex, trackCount);
+                Tracks.RemoveRange(tracksIndex, trackCount);
+                if (newPosition > tracksIndex)
+                {
+                    newPosition = newPosition - trackCount;
+                }
+
+                Tracks.InsertRange(newPosition, movingTracks);
+            }
+        }
 
         private void PlaylistRenamed(IntPtr playlistPtr, IntPtr userDataPtr)
         {
