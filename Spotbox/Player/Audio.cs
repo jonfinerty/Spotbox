@@ -16,7 +16,12 @@ namespace Spotbox.Player
         private static int _playlistPosition;
         private static HaltableBufferedWaveProvider _waveProvider;
         private static WaveOut _waveOutDevice;
-        private static readonly EventHandler<StoppedEventArgs> PlaybackStoppedHandler = (sender, args) => Next();
+        private static readonly EventHandler<StoppedEventArgs> PlaybackStoppedHandler = (sender, args) =>
+        {
+            _waveOutDevice = null;
+            Next();
+            Play();
+        };
         private static bool _complete;
         private static bool _interrupt;
         private static readonly object SyncObj = new object();
