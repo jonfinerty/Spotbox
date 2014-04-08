@@ -227,7 +227,7 @@ namespace Spotbox.Player.Spotify
         {
             searchCompleteDelegate = SearchComplete;
             var searchPtr = libspotify.sp_search_create(Session.GetSessionPtr(), trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
-            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) != libspotify.sp_error.OK, 10);
+            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) == libspotify.sp_error.OK, 10);
                 
             if (libspotify.sp_search_num_tracks(searchPtr) > 0)
             {

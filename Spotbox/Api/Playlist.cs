@@ -29,8 +29,11 @@ namespace Spotbox.Api
                 if (track != null)
                 {
                     Audio.CurrentPlaylist.AddTrack(track);
-                    return HttpStatusCode.OK;
+                    var response = (Response)JsonConvert.SerializeObject(track);
+                    response.ContentType = "application/json";
+                    return response;
                 }
+
                 return HttpStatusCode.NotFound;
             };
 
