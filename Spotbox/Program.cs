@@ -19,14 +19,13 @@ namespace Spotbox
 
             Spotify.Login(spotifyApiKey, spotifyUsername, spotifyPassword);
 
-            var port = Convert.ToInt32(ConfigurationManager.AppSettings["PortNumber"]);
-
-            StartServer(port);
+            StartServer();
         }
 
-        private static void StartServer(int port)
+        private static void StartServer()
         {
-            var hostUri = "http://+:" + port;
+            const string hostUri = "http://+:80/";
+
             using (WebApp.Start<Startup>(hostUri))
             {
                 Console.WriteLine("Hosting Spotbox at: {0}", hostUri);

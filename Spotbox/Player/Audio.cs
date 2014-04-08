@@ -18,7 +18,12 @@ namespace Spotbox.Player
         private static WaveOut _waveOutDevice;
         private static readonly EventHandler<StoppedEventArgs> PlaybackStoppedHandler = (sender, args) =>
         {
-            _waveOutDevice = null;
+            playingState = PlayingState.Stopped;
+            if (_loop != true && _playlistPosition == CurrentPlaylist.PlaylistInfo.TrackCount - 1)
+            {
+                return;
+            }
+
             Next();
             Play();
         };
@@ -31,8 +36,24 @@ namespace Spotbox.Player
         const int Channels = 2;
         private static readonly WaveFormat WaveFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, SampleRate * Channels, 1, SampleRate * 2 * Channels, Channels, 16);
 
+        private enum PlayingState
+        {
+            Playing,
+            Paused,
+            Stopped
+        };
+
+        private static PlayingState playingState = PlayingState.Stopped;
+
+        private static bool _loop = false;
+
         private static void InitialisePlayer()
-        {            
+        {
+            if (_waveOutDevice != null)
+            {
+                _waveOutDevice.Dispose();
+            }
+
             _waveOutDevice = new WaveOut { DesiredLatency = 200 };
 
             _waveProvider = new HaltableBufferedWaveProvider(WaveFormat)
@@ -73,13 +94,16 @@ namespace Spotbox.Player
             {
                 _waveOutDevice.Play();
             }
+
+            playingState = PlayingState.Playing;
         }
 
         public static void Pause()
         {
-            if (_waveOutDevice != null)
+            if (_waveOutDevice != null && playingState == PlayingState.Playing)
             {
                 _waveOutDevice.Pause();
+                playingState = PlayingState.Paused;
             }
         }
 
