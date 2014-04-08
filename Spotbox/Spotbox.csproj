@@ -116,6 +116,8 @@
     <Compile Include="Player\Libspotifydotnet\TopList.cs" />
     <Compile Include="Player\Libspotifydotnet\Track.cs" />
     <Compile Include="Player\Libspotifydotnet\User.cs" />
+    <Compile Include="Player\Spotify\Extensions.cs" />
+    <Compile Include="Player\Spotify\AlbumCover.cs" />
     <Compile Include="Player\Spotify\Playlist.cs" />
     <Compile Include="Player\Spotify\PlaylistContainer.cs" />
     <Compile Include="Player\Spotify\PlaylistInfo.cs" />
