@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
-using Newtonsoft.Json;
 
 using log4net;
 
@@ -13,11 +12,10 @@ namespace Spotbox.Player.Spotify
     {
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        [JsonIgnore]
-        public IntPtr PlaylistContainerPtr { get; private set; }
         private IntPtr _callbacksPtr;
 
-        [JsonProperty("Playlists")]
+        public IntPtr PlaylistContainerPtr { get; private set; }
+        
         public List<PlaylistInfo> PlaylistInfos { get; private set; }
 
         public PlaylistContainer(IntPtr playlistContainerPtr)
@@ -29,7 +27,7 @@ namespace Spotbox.Player.Spotify
             LoadPlaylistInfos();
         }
   
-        ~PlaylistContainer()
+        public void Dispose()
         {
             GC.SuppressFinalize(this);
             libspotify.sp_playlistcontainer_remove_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);

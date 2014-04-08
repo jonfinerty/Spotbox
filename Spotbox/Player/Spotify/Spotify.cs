@@ -112,19 +112,18 @@ namespace Spotbox.Player.Spotify
 
         public static List<PlaylistInfo> GetAllPlaylists()
         {
-            var playlistContainer = GetSessionUserPlaylists();
-            _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
-            return playlistContainer.PlaylistInfos;
-        }
-
-        public static PlaylistContainer GetSessionUserPlaylists()
-        {
             if (Session.GetSessionPtr() == IntPtr.Zero)
             {
                 throw new InvalidOperationException("No valid session.");
             }
 
-            return new PlaylistContainer(libspotify.sp_session_playlistcontainer(Session.GetSessionPtr()));
+            if (playlistContainer == null)
+            {
+                playlistContainer = new PlaylistContainer(libspotify.sp_session_playlistcontainer(Session.GetSessionPtr()));
+                _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
+            }
+            
+            return playlistContainer.PlaylistInfos;
         }
 
         public static void ShutDown()
@@ -136,15 +135,18 @@ namespace Spotbox.Player.Spotify
 
                 try
                 {
-                    if (Libspotifydotnet.PlaylistContainer.GetSessionContainer() != null)
+                    if (playlistContainer != null)
                     {
-                        Libspotifydotnet.PlaylistContainer.GetSessionContainer().Dispose();
+                        playlistContainer.Dispose();
                     }
                 }
                 catch { }
 
                 if (_mainSignal != null)
+                {
                     _mainSignal.Set();
+                }
+
                 _shutDown = true;
             }
 
@@ -164,12 +166,16 @@ namespace Spotbox.Player.Spotify
                 while (true)
                 {
                     if (_shutDown)
+                    {
                         break;
+                    }
 
                     _mainSignal.WaitOne(timeout, false);
 
                     if (_shutDown)
+                    {
                         break;
+                    }
 
                     lock (_syncObj)
                     {
@@ -180,7 +186,8 @@ namespace Spotbox.Player.Spotify
                                 do
                                 {
                                     libspotify.sp_session_process_events(Session.GetSessionPtr(), out timeout);
-                                } while (timeout == 0);
+                                }
+                                while (timeout == 0);
                             }
                         }
                         catch (Exception ex)
@@ -203,7 +210,9 @@ namespace Spotbox.Player.Spotify
             finally
             {
                 if (_programSignal != null)
+                {
                     _programSignal.Set();
+                }
             }
         }
 
@@ -229,6 +238,8 @@ namespace Spotbox.Player.Spotify
 
         private delegate void SearchCompleteDelegate(IntPtr searchPtr, IntPtr userDataPtr);
         private static SearchCompleteDelegate searchCompleteDelegate;
+
+        private static PlaylistContainer playlistContainer;
 
         public static Track SearchForTrack(string trackSearch)
         {

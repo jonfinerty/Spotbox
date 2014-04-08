@@ -10,8 +10,8 @@ namespace Spotbox.Api
         {
             Get["/playlists"] = x =>
             {                
-                var playlistContainer = Spotify.GetSessionUserPlaylists();
-                var response = (Response)JsonConvert.SerializeObject(playlistContainer);
+                var playlists = Spotify.GetAllPlaylists();
+                var response = (Response)JsonConvert.SerializeObject(playlists);
                 response.ContentType = "application/json";
                 return response;
             };
