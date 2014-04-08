@@ -64,9 +64,9 @@ namespace Spotbox.Player
 
             _waveProvider = new HaltableBufferedWaveProvider(WaveFormat)
             {
-                BufferDuration = new TimeSpan(0, 0, CurrentlyPlayingTrack.Length),
-                DiscardOnBufferOverflow = true
+                BufferDuration = new TimeSpan(0, 0, CurrentlyPlayingTrack.Length)
             };
+
             _waveOutDevice.Init(_waveProvider);
             
             _waveOutDevice.PlaybackStopped += PlaybackStoppedHandler;

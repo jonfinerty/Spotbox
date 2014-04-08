@@ -7,25 +7,12 @@ namespace Spotbox.Player
     public class HaltableBufferedWaveProvider : IWaveProvider
     {
         private readonly BufferedWaveProvider _bufferedWaveProvider;
-        private bool _bufferFinished=false;
+
+        private bool _bufferFinished;
 
         public HaltableBufferedWaveProvider(WaveFormat waveFormat)
         {
-            _bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
-        }
-
-        public int Read(byte[] buffer, int offset, int count)
-        {
-            var byteCount = _bufferedWaveProvider.Read(buffer, offset, count);
-            
-            if (!_bufferFinished) return byteCount;
-            
-            if (buffer.All(b => b.Equals(0)))
-            {
-                byteCount = 0;
-            }
-
-            return byteCount;
+            _bufferedWaveProvider = new BufferedWaveProvider(waveFormat) { DiscardOnBufferOverflow = true };
         }
 
         public WaveFormat WaveFormat
@@ -36,27 +23,34 @@ namespace Spotbox.Player
             }
         }
 
-        public TimeSpan BufferDuration {
+        public TimeSpan BufferDuration 
+        {
             get
             {
                 return _bufferedWaveProvider.BufferDuration;
-            } 
+            }
+
             set
             {
                 _bufferedWaveProvider.BufferDuration = value;
             }
         }
 
-        public bool DiscardOnBufferOverflow
+        public int Read(byte[] buffer, int offset, int count)
         {
-            get
+            var byteCount = _bufferedWaveProvider.Read(buffer, offset, count);
+
+            if (!_bufferFinished)
             {
-                return _bufferedWaveProvider.DiscardOnBufferOverflow;
+                return byteCount;
             }
-            set
+
+            if (buffer.All(b => b.Equals(0)))
             {
-                _bufferedWaveProvider.DiscardOnBufferOverflow = value;
+                byteCount = 0;
             }
+
+            return byteCount;
         }
 
         public void AddSamples(byte[] buffer, int i, int length)
