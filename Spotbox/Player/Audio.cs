@@ -27,6 +27,7 @@ namespace Spotbox.Player
             Next();
             Play();
         };
+
         private static bool _complete;
         private static bool _interrupt;
         private static readonly object SyncObj = new object();

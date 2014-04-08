@@ -11,8 +11,6 @@ namespace Spotbox
     {
         static void Main()
         {
-            Spotify.Initialize();
-
             var spotifyApiKey = File.ReadAllBytes(ConfigurationManager.AppSettings["SpotifyApiKeyPath"]);
             var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
             var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
@@ -54,9 +52,8 @@ namespace Spotbox
 
                 return;
             }
-
             Spotify.PlayDefaultPlaylist();
         }
-        
+
     }
 }
