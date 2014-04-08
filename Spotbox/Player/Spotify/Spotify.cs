@@ -132,15 +132,8 @@ namespace Spotbox.Player.Spotify
             {
                 libspotify.sp_session_player_unload(Session.GetSessionPtr());
                 libspotify.sp_session_logout(Session.GetSessionPtr());
-
-                try
-                {
-                    if (playlistContainer != null)
-                    {
-                        playlistContainer.Dispose();
-                    }
-                }
-                catch { }
+    
+                playlistContainer = null;
 
                 if (_mainSignal != null)
                 {

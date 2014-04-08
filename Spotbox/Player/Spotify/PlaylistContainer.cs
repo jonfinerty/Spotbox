@@ -14,29 +14,23 @@ namespace Spotbox.Player.Spotify
 
         private IntPtr _callbacksPtr;
 
-        public IntPtr PlaylistContainerPtr { get; private set; }
-        
-        public List<PlaylistInfo> PlaylistInfos { get; private set; }
-
         public PlaylistContainer(IntPtr playlistContainerPtr)
         {
             PlaylistContainerPtr = playlistContainerPtr;
             AddCallbacks();
-            Wait.For(IsLoaded, 10);
+            Wait.For(() => libspotify.sp_playlistcontainer_is_loaded(PlaylistContainerPtr));
 
             LoadPlaylistInfos();
         }
-  
-        public void Dispose()
+
+        ~PlaylistContainer()
         {
-            GC.SuppressFinalize(this);
             libspotify.sp_playlistcontainer_remove_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
         }
 
-        private bool IsLoaded()
-        {
-            return libspotify.sp_playlistcontainer_is_loaded(PlaylistContainerPtr);
-        }
+        public IntPtr PlaylistContainerPtr { get; private set; }
+
+        public List<PlaylistInfo> PlaylistInfos { get; private set; }
 
         private void LoadPlaylistInfos()
         {

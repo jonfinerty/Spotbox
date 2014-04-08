@@ -2,30 +2,29 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using libspotifydotnet;
-using Newtonsoft.Json;
 
+using libspotifydotnet;
 using log4net;
+using Newtonsoft.Json;
 
 namespace Spotbox.Player.Spotify
 {
     public class Playlist
     {
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        [JsonIgnore]
-        public IntPtr PlaylistPtr { get; private set; }
         private IntPtr _callbacksPtr;
-
-        public PlaylistInfo PlaylistInfo { get; private set; }
-        public List<Track> Tracks { get; private set; }
 
         public Playlist(IntPtr playlistPtr)
         {
+            if (playlistPtr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Invalid playlist pointer.");
+            }
+
             PlaylistPtr = playlistPtr;
             AddCallbacks();
 
-            Wait.For(IsLoaded, 10);
+            Wait.For(() => libspotify.sp_playlist_is_loaded(PlaylistPtr));
 
             PlaylistInfo = new PlaylistInfo(playlistPtr);
             LoadTracks();
@@ -33,15 +32,16 @@ namespace Spotbox.Player.Spotify
 
         ~Playlist()
         {
-            GC.SuppressFinalize(this);
             libspotify.sp_playlist_remove_callbacks(PlaylistPtr, _callbacksPtr, IntPtr.Zero);
             libspotify.sp_playlist_release(PlaylistPtr);
         }
 
-        private bool IsLoaded()
-        {
-            return libspotify.sp_playlist_is_loaded(PlaylistPtr);
-        }
+        [JsonIgnore]
+        public IntPtr PlaylistPtr { get; private set; }
+
+        public PlaylistInfo PlaylistInfo { get; private set; }
+
+        public List<Track> Tracks { get; private set; }
 
         public void LoadTracks()
         {
@@ -100,9 +100,6 @@ namespace Spotbox.Player.Spotify
 
         private void AddCallbacks()
         {
-            if (PlaylistPtr == IntPtr.Zero)
-                throw new InvalidOperationException("Invalid playlist pointer.");
-
             _tracksAddedDelegate = TracksAdded;
             _tracksRemovedDelegate = TracksRemoved;
             _tracksMovedDelegate = TracksMoved;
@@ -208,8 +205,5 @@ namespace Spotbox.Player.Spotify
 
 
         #endregion
-
-
     }
-
 }
