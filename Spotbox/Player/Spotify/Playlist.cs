@@ -49,6 +49,20 @@ namespace Spotbox.Player.Spotify
             }                
         }
 
+        public void AddTrack(Track track)
+        {
+            Console.WriteLine("Adding track: {0} to playlist: {1}", track.Name, PlaylistInfo.Name);
+            var tracksPtr = IntPtr.Zero;
+            
+            var array = new int[1];
+            array[0] = (int)track.TrackPtr;
+
+            var size = Marshal.SizeOf(tracksPtr) * array.Length;
+            tracksPtr = Marshal.AllocHGlobal(size);
+            Marshal.Copy(array, 0, tracksPtr, array.Length);
+            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, PlaylistInfo.TrackCount, Session.GetSessionPtr());
+        }
+
         #region Callbacks
 
         private delegate void TracksAddedDelegate(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int position, IntPtr userDataPtr);
@@ -123,10 +137,11 @@ namespace Spotbox.Player.Spotify
 
         private void TracksAdded(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int position, IntPtr userDataPtr)
         {
-            Console.WriteLine("{0} Tracks added", trackCount);
             foreach (var trackPtr in tracksPtr)
             {
-                Tracks.Insert(position, new Track(trackPtr));
+                var newTrack = new Track(trackPtr);
+                Tracks.Insert(position, newTrack);
+                Console.WriteLine("Track sync added: {0}", newTrack.Name);
                 PlaylistInfo.TrackCount++;
                 position++;
             }
@@ -134,12 +149,12 @@ namespace Spotbox.Player.Spotify
 
         private void TracksRemoved(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, IntPtr userDataPtr)
         {
-            Console.WriteLine("{0} Tracks removed", trackCount);
             foreach (var trackPtr in tracksPtr)
             {
                 var trackIndex = (int)trackPtr;
                 for (var i = 0; i < trackCount; i++)
                 {
+                    Console.WriteLine("Track sync removed: {0}", Tracks[trackIndex].Name);
                     Tracks.RemoveAt(trackIndex);
                     PlaylistInfo.TrackCount--;
                 }
@@ -188,6 +203,8 @@ namespace Spotbox.Player.Spotify
 
 
         #endregion
+
+
     }
 
 }

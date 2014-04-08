@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
+
 using libspotifydotnet;
 
 namespace Spotbox.Player.Spotify
@@ -217,5 +219,25 @@ namespace Spotbox.Player.Spotify
                 _mainSignal.Set();
             }
         }
+
+        private delegate void SearchCompleteDelegate(IntPtr searchPtr, IntPtr userDataPtr);
+        private static SearchCompleteDelegate searchCompleteDelegate;
+
+        public static Track SearchForTrack(string trackSearch)
+        {
+            searchCompleteDelegate = SearchComplete;
+            var searchPtr = libspotify.sp_search_create(Session.GetSessionPtr(), trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
+            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) != libspotify.sp_error.OK, 10);
+                
+            if (libspotify.sp_search_num_tracks(searchPtr) > 0)
+            {
+                var track = new Track(libspotify.sp_search_track(searchPtr, 0));
+                return track;
+            }
+
+            return null;
+        }
+
+        public static void SearchComplete(IntPtr searchPtr, IntPtr userDataPtr) {}
     }
 }

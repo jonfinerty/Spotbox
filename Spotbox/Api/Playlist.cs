@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 
 using Spotbox.Api.Models;
 using Spotbox.Player;
+using Spotbox.Player.Spotify;
 
 namespace Spotbox.Api
 {
@@ -22,7 +23,15 @@ namespace Spotbox.Api
 
             Post["/playlist"] = x =>
             {
-                return HttpStatusCode.OK;
+                var trackSearch = this.Bind<SimpleInput>();
+                var track = Spotify.SearchForTrack(trackSearch.Value);
+
+                if (track != null)
+                {
+                    Audio.CurrentPlaylist.AddTrack(track);
+                    return HttpStatusCode.OK;
+                }
+                return HttpStatusCode.NotFound;
             };
 
             Put["/playlist"] = x =>
