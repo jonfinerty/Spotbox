@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using Newtonsoft.Json;
+
+using log4net;
 
 namespace Spotbox.Player.Spotify
 {
     public class PlaylistContainer
     {
+        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         [JsonIgnore]
         public IntPtr PlaylistContainerPtr { get; private set; }
         private IntPtr _callbacksPtr;
@@ -52,7 +57,7 @@ namespace Spotbox.Player.Spotify
                 var playlistPtr = libspotify.sp_playlistcontainer_playlist(PlaylistContainerPtr, i);
                 var playlistInfo = new PlaylistInfo(playlistPtr);
                 PlaylistInfos.Add(playlistInfo);
-            }            
+            }
         }
 
         #region Callbacks
@@ -87,20 +92,16 @@ namespace Spotbox.Player.Spotify
             libspotify.sp_playlistcontainer_add_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
         }
 
-        private void PlayListContainerLoaded(IntPtr containerPtr, IntPtr userDataPtr)
-        {
-            Console.WriteLine("PlayListContainerLoaded");
-        }
+        private void PlayListContainerLoaded(IntPtr containerPtr, IntPtr userDataPtr) { }
 
         private void PlaylistAdded(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            Console.WriteLine("Playlist added at position {0}", position);
             PlaylistInfos.Insert(position, new PlaylistInfo(playlistPtr));
+            _logger.InfoFormat("Playlist added at position {0}", position);
         }
 
         private void PlaylistMoved(IntPtr containerPtr, IntPtr playlistPtr, int oldPosition, int newPosition, IntPtr userDataPtr)
         {
-            Console.WriteLine("Playlist moved from {0} to {1}", oldPosition, newPosition);
             var item = PlaylistInfos[oldPosition];
 
             PlaylistInfos.RemoveAt(oldPosition);
@@ -109,14 +110,15 @@ namespace Spotbox.Player.Spotify
             {
                 newPosition--;
             }
-            
+
             PlaylistInfos.Insert(newPosition, item);
+            _logger.InfoFormat("Playlist moved from {0} to {1}", oldPosition, newPosition);
         }
 
         private void PlaylistRemoved(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            Console.WriteLine("Playlist Removed from position {0}", position);
             PlaylistInfos.RemoveAt(position);
+            _logger.InfoFormat("Playlist Removed from position {0}", position);
         }
 
         #endregion

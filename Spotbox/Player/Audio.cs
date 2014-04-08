@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
+
 using libspotifydotnet;
+using log4net;
 using Microsoft.AspNet.SignalR;
 using NAudio.Wave;
 using Newtonsoft.Json;
@@ -11,6 +14,8 @@ namespace Spotbox.Player
 {
     static class Audio
     {
+        private static readonly ILog logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public static Track CurrentlyPlayingTrack { get; private set; }
         public static Playlist CurrentPlaylist { get; private set; }
         private static int _playlistPosition;
@@ -133,7 +138,7 @@ namespace Spotbox.Player
             var wasPlaying = playingState;
             Pause();
             CurrentPlaylist = playlist;
-            Console.WriteLine("Setting playlist: {0}", playlist.PlaylistInfo.Name);
+            logger.InfoFormat("Setting playlist: {0}", playlist.PlaylistInfo.Name);
             CurrentlyPlayingTrack = null;
             _playlistPosition = 0;
             if (wasPlaying == PlayingState.Playing)
@@ -153,7 +158,7 @@ namespace Spotbox.Player
                 return true;
             }
 
-            Console.WriteLine("No playlist found with name: {0}", playlistName);
+            logger.InfoFormat("No playlist found with name: {0}", playlistName);
             return false;
         }
 
@@ -170,7 +175,7 @@ namespace Spotbox.Player
             }
             CurrentlyPlayingTrack = null;
             _playlistPosition = position;
-            Console.WriteLine("Setting playlist position: {0}", _playlistPosition);
+            logger.InfoFormat("Setting playlist position: {0}", _playlistPosition);
             if (wasPlaying)
             {
                 Play();
@@ -179,7 +184,7 @@ namespace Spotbox.Player
 
         private static void Play(Track track)
         {
-            Console.WriteLine("Playing track: {0} - {1}", track.Name, Enumerable.First<string>(track.Artists));            
+            logger.InfoFormat("Playing track: {0} - {1}", track.Name, Enumerable.First<string>(track.Artists));            
             CurrentlyPlayingTrack = track;
             SaveTrackToSettings();
             _newTrack = true;
@@ -214,8 +219,9 @@ namespace Spotbox.Player
 
                 if (avail != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
                 {
-                    Console.WriteLine((String.Format("Track is unavailable ({0}).", avail)));
-                    return;                    
+                    logger.ErrorFormat("Track is unavailable ({0}).", avail);
+                    Next();
+                    return;
                 }
 
                 Session.OnAudioDataArrived += Session_OnAudioDataArrived;
@@ -225,7 +231,9 @@ namespace Spotbox.Player
 
                 if (error != libspotify.sp_error.OK)
                 {
-                    throw new Exception(String.Format("[Spotify] {0}", libspotify.sp_error_message(error)));
+                    logger.ErrorFormat("[Spotify] {0}", libspotify.sp_error_message(error));
+                    Next();
+                    return;
                 }
 
                 Session.Play();

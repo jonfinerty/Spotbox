@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using Newtonsoft.Json;
+
+using log4net;
 
 namespace Spotbox.Player.Spotify
 {
     public class Playlist
     {
+        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         [JsonIgnore]
         public IntPtr PlaylistPtr { get; private set; }
         private IntPtr _callbacksPtr;
@@ -51,7 +56,7 @@ namespace Spotbox.Player.Spotify
 
         public void AddTrack(Track track)
         {
-            Console.WriteLine("Adding track: {0} to playlist: {1}", track.Name, PlaylistInfo.Name);
+            _logger.InfoFormat("Adding track: {0} to playlist: {1}", track.Name, PlaylistInfo.Name);
             var tracksPtr = IntPtr.Zero;
             
             var array = new int[1];
@@ -141,7 +146,7 @@ namespace Spotbox.Player.Spotify
             {
                 var newTrack = new Track(trackPtr);
                 Tracks.Insert(position, newTrack);
-                Console.WriteLine("Track sync added: {0}", newTrack.Name);
+                _logger.InfoFormat("Track sync added: {0}", newTrack.Name);
                 PlaylistInfo.TrackCount++;
                 position++;
             }
@@ -154,7 +159,7 @@ namespace Spotbox.Player.Spotify
                 var trackIndex = (int)trackPtr;
                 for (var i = 0; i < trackCount; i++)
                 {
-                    Console.WriteLine("Track sync removed: {0}", Tracks[trackIndex].Name);
+                    _logger.InfoFormat("Track sync removed: {0}", Tracks[trackIndex].Name);
                     Tracks.RemoveAt(trackIndex);
                     PlaylistInfo.TrackCount--;
                 }
@@ -163,7 +168,7 @@ namespace Spotbox.Player.Spotify
 
         private void TracksMoved(IntPtr playlistPtr, IntPtr[] tracksPtr, int trackCount, int newPosition, IntPtr userDataPtr)
         {
-            Console.WriteLine("{0} Tracks moved", trackCount);
+            _logger.InfoFormat("{0} Tracks moved", trackCount);
             foreach (var trackPtr in tracksPtr)
             {
                 var tracksIndex = (int)trackPtr;

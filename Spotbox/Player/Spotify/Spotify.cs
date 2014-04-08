@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 using libspotifydotnet;
 
+using log4net;
+
 namespace Spotbox.Player.Spotify
 {
     public class Spotify
     {
-        public delegate void LibSpotifyThreadMessageDelegate(object[] args);
+        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private static AutoResetEvent _programSignal;
         private static AutoResetEvent _mainSignal;
@@ -23,6 +26,8 @@ namespace Spotbox.Player.Spotify
         private static Action<IntPtr> d_on_logged_in = Session_OnLoggedIn;
         private static Thread _libSpotifyThread;
 
+        public delegate void LibSpotifyThreadMessageDelegate(object[] args);
+
         private class LibSpotifyThreadMessage
         {
             public LibSpotifyThreadMessageDelegate d;
@@ -33,9 +38,9 @@ namespace Spotbox.Player.Spotify
         {
             InitializeLibSpotifyThread();
 
-            Console.WriteLine("Logging into spotify with credentials");
-            Console.WriteLine("Username: {0}", username);
-            Console.WriteLine("Password: {0}", new String('*', password.Length));
+            _logger.InfoFormat("Logging into spotify with credentials");
+            _logger.InfoFormat("Username: {0}", username);
+            _logger.InfoFormat("Password: {0}", new String('*', password.Length));
 
             PostMessage(Session.Login, new object[] { appkey, username, password });
 
@@ -43,7 +48,7 @@ namespace Spotbox.Player.Spotify
 
             if (Session.LoginError != libspotify.sp_error.OK)
             {
-                Console.WriteLine("Login failed: {0}", libspotify.sp_error_message(Session.LoginError));
+                _logger.ErrorFormat("Login failed: {0}", libspotify.sp_error_message(Session.LoginError));
                 return false;
             }
 
@@ -69,7 +74,7 @@ namespace Spotbox.Player.Spotify
 
                     _programSignal.WaitOne();
 
-                    Console.WriteLine("Main spotify thread running...");
+                    _logger.DebugFormat("Main spotify thread running...");
 
                     _initialised = true;
                 }
@@ -98,7 +103,7 @@ namespace Spotbox.Player.Spotify
         {
             var playlistInfos = GetAllPlaylists();
             var playlistInfo = playlistInfos.Where(info => info.TrackCount > 0).Skip(1).FirstOrDefault();
-            Console.WriteLine("Playing first playlist found");
+            _logger.InfoFormat("Playing first playlist found");
             var playlist = new Playlist(playlistInfo.PlaylistPtr);
 
             Audio.SetPlaylist(playlist);
@@ -108,14 +113,16 @@ namespace Spotbox.Player.Spotify
         public static List<PlaylistInfo> GetAllPlaylists()
         {
             var playlistContainer = GetSessionUserPlaylists();
-            Console.WriteLine("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
+            _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
             return playlistContainer.PlaylistInfos;
         }
 
         public static PlaylistContainer GetSessionUserPlaylists()
         {
             if (Session.GetSessionPtr() == IntPtr.Zero)
+            {
                 throw new InvalidOperationException("No valid session.");
+            }
 
             return new PlaylistContainer(libspotify.sp_session_playlistcontainer(Session.GetSessionPtr()));
         }
@@ -178,7 +185,7 @@ namespace Spotbox.Player.Spotify
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("Exception invoking sp_session_process_events {0}", ex);
+                            _logger.ErrorFormat("Exception invoking sp_session_process_events {0}", ex);
                         }
 
                         while (_libSpotifyMessageQueue.Count > 0)
@@ -191,7 +198,7 @@ namespace Spotbox.Player.Spotify
             }
             catch (Exception ex)
             {
-                Console.WriteLine("StartMainSpotifyThread() unhandled exception: {0}", ex);
+                _logger.ErrorFormat("StartMainSpotifyThread() unhandled exception: {0}", ex);
             }
             finally
             {

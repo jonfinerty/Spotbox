@@ -1,11 +1,17 @@
 ﻿using System;
+using System.Reflection;
+
 using libspotifydotnet;
 using Spotbox.Player.Libspotifydotnet;
+
+using log4net;
 
 namespace Spotbox.Player.Spotify
 {
     public class User
     {
+        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public IntPtr UserPtr { get; private set; }
         public string CanonicalName { get; private set; }
         public string DisplayName { get; private set; }
@@ -29,7 +35,7 @@ namespace Spotbox.Player.Spotify
             }
             catch (Exception)
             {
-                Console.WriteLine("User does not have a full name set");
+                _logger.DebugFormat("User: {0} does not have a full name set", DisplayName);
             }
         }
     }

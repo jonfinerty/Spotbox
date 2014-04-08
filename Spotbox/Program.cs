@@ -1,14 +1,20 @@
 ﻿using System;
 using System.Configuration;
 using System.IO;
+using System.Reflection;
+
 using Microsoft.Owin.Hosting;
 using Spotbox.Player;
 using Spotbox.Player.Spotify;
+
+using log4net;
 
 namespace Spotbox
 {
     class Program
     {
+        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         static void Main()
         {
             var spotifyApiKey = File.ReadAllBytes(ConfigurationManager.AppSettings["SpotifyApiKeyPath"]);
@@ -26,7 +32,7 @@ namespace Spotbox
 
             using (WebApp.Start<Startup>(hostUri))
             {
-                Console.WriteLine("Hosting Spotbox at: {0}", hostUri);
+                _logger.InfoFormat("Hosting Spotbox at: {0}", hostUri);
 
                 PlayLastPlaying();
 
