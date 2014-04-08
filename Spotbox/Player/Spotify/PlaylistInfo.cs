@@ -26,7 +26,7 @@ namespace Spotbox.Player.Spotify
         {
             PlaylistPtr = playlistPtr;
 
-            Wait.For(() => libspotify.sp_playlist_is_loaded(PlaylistPtr), 10);
+            Wait.For(() => libspotify.sp_playlist_is_loaded(PlaylistPtr));
 
             SetPlaylistInfo(playlistPtr);
         }
@@ -38,8 +38,8 @@ namespace Spotbox.Player.Spotify
             TrackCount = libspotify.sp_playlist_num_tracks(playlistPtr);
             Description = Functions.PtrToString(libspotify.sp_playlist_get_description(PlaylistPtr));
             SubscriberCount = (int) libspotify.sp_playlist_num_subscribers(PlaylistPtr);
-            IsInRam = libspotify.sp_playlist_is_in_ram(Session.GetSessionPtr(), PlaylistPtr);
-            OfflineStatus = libspotify.sp_playlist_get_offline_status(Session.GetSessionPtr(), PlaylistPtr);
+            IsInRam = libspotify.sp_playlist_is_in_ram(Spotify.GetSessionPtr(), PlaylistPtr);
+            OfflineStatus = libspotify.sp_playlist_get_offline_status(Spotify.GetSessionPtr(), PlaylistPtr);
         }
 
         public Playlist GetPlaylist()

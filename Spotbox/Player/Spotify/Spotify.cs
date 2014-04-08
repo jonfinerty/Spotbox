@@ -17,86 +17,28 @@ namespace Spotbox.Player.Spotify
 
         private static AutoResetEvent _programSignal;
         private static AutoResetEvent _mainSignal;
-        private static Queue<LibSpotifyThreadMessage> _libSpotifyMessageQueue = new Queue<LibSpotifyThreadMessage>();
+
         private static bool _shutDown;
         private static object _syncObj = new object();
-        private static object _initSync = new object();
-        private static bool _initialised;
-        private static Action<IntPtr> d_notify = Session_OnNotifyMainThread;
-        private static Action<IntPtr> d_on_logged_in = Session_OnLoggedIn;
+
         private static Thread _libSpotifyThread;
 
         public delegate void LibSpotifyThreadMessageDelegate(object[] args);
 
-        private class LibSpotifyThreadMessage
-        {
-            public LibSpotifyThreadMessageDelegate d;
-            public object[] payload;
-        }
-
         public static bool Login(byte[] appkey, string username, string password)
         {
-            InitializeLibSpotifyThread();
+            session = new Session(appkey);
+
+            _libSpotifyThread = new Thread(StartMainSpotifyThread);
+            _libSpotifyThread.Start();
 
             _logger.InfoFormat("Logging into spotify with credentials");
             _logger.InfoFormat("Username: {0}", username);
-            _logger.InfoFormat("Password: {0}", new String('*', password.Length));
+            _logger.InfoFormat("Password: {0}", new string('*', password.Length));
 
-            PostMessage(Session.Login, new object[] { appkey, username, password });
-
-            _programSignal.WaitOne();
-
-            if (Session.LoginError != libspotify.sp_error.OK)
-            {
-                _logger.ErrorFormat("Login failed: {0}", libspotify.sp_error_message(Session.LoginError));
-                return false;
-            }
+            session.Login(username, password);
 
             return true;
-        }
-
-        private static void InitializeLibSpotifyThread()
-        {
-            if (_initialised)
-                return;
-
-            lock (_initSync)
-            {
-                try
-                {
-                    Session.OnNotifyMainThread += d_notify;
-                    Session.OnLoggedIn += d_on_logged_in;
-
-                    _programSignal = new AutoResetEvent(false);
-
-                    _libSpotifyThread = new Thread(StartMainSpotifyThread);
-                    _libSpotifyThread.Start();
-
-                    _programSignal.WaitOne();
-
-                    _logger.DebugFormat("Main spotify thread running...");
-
-                    _initialised = true;
-                }
-                catch
-                {
-                    Session.OnNotifyMainThread -= d_notify;
-                    Session.OnLoggedIn -= d_on_logged_in;
-
-                    if (_libSpotifyThread != null)
-                    {
-                        try
-                        {
-                            _libSpotifyThread.Abort();
-                        }
-                        catch { }
-                        finally
-                        {
-                            _libSpotifyThread = null;
-                        }
-                    }
-                }
-            }
         }
 
         public static void PlayDefaultPlaylist()
@@ -112,14 +54,14 @@ namespace Spotbox.Player.Spotify
 
         public static List<PlaylistInfo> GetAllPlaylists()
         {
-            if (Session.GetSessionPtr() == IntPtr.Zero)
+            if (session.SessionPtr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("No valid session.");
             }
 
             if (playlistContainer == null)
             {
-                playlistContainer = new PlaylistContainer(libspotify.sp_session_playlistcontainer(Session.GetSessionPtr()));
+                playlistContainer = new PlaylistContainer(libspotify.sp_session_playlistcontainer(session.SessionPtr));
                 _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
             }
             
@@ -130,8 +72,8 @@ namespace Spotbox.Player.Spotify
         {
             lock (_syncObj)
             {
-                libspotify.sp_session_player_unload(Session.GetSessionPtr());
-                libspotify.sp_session_logout(Session.GetSessionPtr());
+                libspotify.sp_session_player_unload(session.SessionPtr);
+                libspotify.sp_session_logout(session.SessionPtr);
     
                 playlistContainer = null;
 
@@ -148,64 +90,19 @@ namespace Spotbox.Player.Spotify
 
         private static void StartMainSpotifyThread()
         {
-            try
+            while (true)
             {
-                _mainSignal = new AutoResetEvent(false);
-
-                var timeout = Timeout.Infinite;
-
-                _programSignal.Set(); // this signals to program thread that loop is running   
-
-                while (true)
+                if (_shutDown)
                 {
-                    if (_shutDown)
-                    {
-                        break;
-                    }
-
-                    _mainSignal.WaitOne(timeout, false);
-
-                    if (_shutDown)
-                    {
-                        break;
-                    }
-
-                    lock (_syncObj)
-                    {
-                        try
-                        {
-                            if (Session.GetSessionPtr() != IntPtr.Zero)
-                            {
-                                do
-                                {
-                                    libspotify.sp_session_process_events(Session.GetSessionPtr(), out timeout);
-                                }
-                                while (timeout == 0);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.ErrorFormat("Exception invoking sp_session_process_events {0}", ex);
-                        }
-
-                        while (_libSpotifyMessageQueue.Count > 0)
-                        {
-                            var m = _libSpotifyMessageQueue.Dequeue();
-                            m.d.Invoke(m.payload);
-                        }
-                    }
+                    break;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.ErrorFormat("StartMainSpotifyThread() unhandled exception: {0}", ex);
-            }
-            finally
-            {
-                if (_programSignal != null)
-                {
-                    _programSignal.Set();
-                }
+
+                int timeout;
+                libspotify.sp_session_process_events(session.SessionPtr, out timeout);
+
+                timeout = Math.Min(100, timeout);
+
+                Thread.Sleep(timeout);
             }
         }
 
@@ -219,26 +116,18 @@ namespace Spotbox.Player.Spotify
             _mainSignal.Set();
         }
 
-        private static void PostMessage(LibSpotifyThreadMessageDelegate d, object[] payload)
-        {
-            _libSpotifyMessageQueue.Enqueue(new LibSpotifyThreadMessage { d = d, payload = payload });
-
-            lock (_syncObj)
-            {
-                _mainSignal.Set();
-            }
-        }
-
         private delegate void SearchCompleteDelegate(IntPtr searchPtr, IntPtr userDataPtr);
         private static SearchCompleteDelegate searchCompleteDelegate;
 
         private static PlaylistContainer playlistContainer;
 
+        private static Session session;
+
         public static Track SearchForTrack(string trackSearch)
         {
             searchCompleteDelegate = SearchComplete;
-            var searchPtr = libspotify.sp_search_create(Session.GetSessionPtr(), trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
-            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) == libspotify.sp_error.OK, 10);
+            var searchPtr = libspotify.sp_search_create(session.SessionPtr, trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
+            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) == libspotify.sp_error.OK);
                 
             if (libspotify.sp_search_num_tracks(searchPtr) > 0)
             {
@@ -250,5 +139,15 @@ namespace Spotbox.Player.Spotify
         }
 
         public static void SearchComplete(IntPtr searchPtr, IntPtr userDataPtr) {}
+
+        public static IntPtr GetSessionPtr()
+        {
+            return session.SessionPtr;
+        }
+
+        public static Session GetSession()
+        {
+            return session;
+        }
     }
 }

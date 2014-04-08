@@ -65,7 +65,7 @@ namespace Spotbox.Player.Spotify
             var size = Marshal.SizeOf(tracksPtr) * array.Length;
             tracksPtr = Marshal.AllocHGlobal(size);
             Marshal.Copy(array, 0, tracksPtr, array.Length);
-            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, PlaylistInfo.TrackCount, Session.GetSessionPtr());
+            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, PlaylistInfo.TrackCount, Spotify.GetSessionPtr());
         }
 
         #region Callbacks

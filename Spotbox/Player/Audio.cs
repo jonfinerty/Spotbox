@@ -215,7 +215,9 @@ namespace Spotbox.Player
                 _interrupt = false;
                 _complete = false;
 
-                var avail = libspotify.sp_track_get_availability(Session.GetSessionPtr(), trackPtr);
+                var session = Spotify.Spotify.GetSession();
+
+                var avail = libspotify.sp_track_get_availability(session.SessionPtr, trackPtr);
 
                 if (avail != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
                 {
@@ -227,7 +229,7 @@ namespace Spotbox.Player
                 Session.OnAudioDataArrived += Session_OnAudioDataArrived;
                 Session.OnAudioStreamComplete += Session_OnAudioStreamComplete;
 
-                var error = Session.LoadPlayer(trackPtr);
+                var error = Spotify.Spotify.GetSession().LoadPlayer(trackPtr);
 
                 if (error != libspotify.sp_error.OK)
                 {
@@ -236,7 +238,7 @@ namespace Spotbox.Player
                     return;
                 }
 
-                Session.Play();
+                session.Play();
 
                 while (!_interrupt && !_complete)
                 {
@@ -246,8 +248,8 @@ namespace Spotbox.Player
                 Session.OnAudioDataArrived -= Session_OnAudioDataArrived;
                 Session.OnAudioStreamComplete -= Session_OnAudioStreamComplete;
 
-                Session.Pause();
-                Session.UnloadPlayer();
+                session.Pause();
+                session.UnloadPlayer();
             }
         }
 

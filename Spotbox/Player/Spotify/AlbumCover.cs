@@ -10,9 +10,9 @@ namespace Spotbox.Player.Spotify
         public AlbumCover(IntPtr albumPtr)
         {
             var coverPtr = libspotify.sp_album_cover(albumPtr, libspotify.sp_image_size.SP_IMAGE_SIZE_LARGE);
-            var ptr = libspotify.sp_image_create(Session.GetSessionPtr(), coverPtr);
+            var ptr = libspotify.sp_image_create(Spotify.GetSessionPtr(), coverPtr);
             ImagePtr = ptr;            
-            Wait.For(() => libspotify.sp_image_is_loaded(ImagePtr), 10);
+            Wait.For(() => libspotify.sp_image_is_loaded(ImagePtr));
         }
 
         ~AlbumCover()

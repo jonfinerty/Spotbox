@@ -5,11 +5,13 @@ namespace Spotbox.Player.Spotify
 {
     public class Wait
     {        
-        public static bool For(Func<bool> isFinishedTest, int timeout)
+        public static bool For(Func<bool> isFinishedTest)
         {
+            const int DefaultTimeoutInSeconds = 10;
+
             var start = DateTime.Now;
 
-            while (DateTime.Now.Subtract(start).Seconds < timeout)
+            while (DateTime.Now.Subtract(start).Seconds < DefaultTimeoutInSeconds)
             {
                 if (isFinishedTest.Invoke())
                 {
@@ -20,12 +22,6 @@ namespace Spotbox.Player.Spotify
             }
 
             return false;
-        }
-
-        public static bool For(Func<bool> isFinishedTest)
-        {
-            const int DefaultTimeoutInSeconds = 10;
-            return For(isFinishedTest, DefaultTimeoutInSeconds);
         }
     }
 }

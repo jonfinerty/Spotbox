@@ -1,20 +1,15 @@
 ﻿using System;
-using System.Reflection;
 
 using libspotifydotnet;
-
-using log4net;
 
 namespace Spotbox.Player.Spotify
 {
     public class User
     {
-        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
         public User(IntPtr userPtr)
         {
             UserPtr = userPtr;
-            Wait.For(() => libspotify.sp_user_is_loaded(userPtr), 10);
+            Wait.For(() => libspotify.sp_user_is_loaded(userPtr));
             SetUserData(userPtr);
         }
 
