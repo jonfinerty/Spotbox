@@ -1,5 +1,9 @@
 ﻿using Nancy;
+using Nancy.ModelBinding;
+
 using Newtonsoft.Json;
+
+using Spotbox.Api.Models;
 using Spotbox.Player;
 
 namespace Spotbox.Api
@@ -18,12 +22,14 @@ namespace Spotbox.Api
 
             Post["/playlist"] = x =>
             {
-                return 200;
+                return HttpStatusCode.OK;
             };
 
             Put["/playlist"] = x =>
             {
-                return 200;
+                var playlistName = this.Bind<SimpleInput>();
+                var found = Audio.SetPlaylist(playlistName.Value);
+                return found ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
             };
         }
     }

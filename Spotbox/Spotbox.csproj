@@ -93,7 +93,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\Controls.cs" />
-    <Compile Include="Api\Models\Speech.cs" />
+    <Compile Include="Api\Models\SimpleInput.cs" />
     <Compile Include="Api\Playing.cs" />
     <Compile Include="Api\Playlist.cs" />
     <Compile Include="Api\Playlists.cs" />
@@ -144,11 +144,6 @@
     <Content Include="libspotify.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Scripts\jquery-1.6.4-vsdoc.js" />
-    <Content Include="Scripts\jquery-1.6.4.js" />
-    <Content Include="Scripts\jquery-1.6.4.min.js" />
-    <Content Include="Scripts\jquery.signalR-2.0.3.js" />
-    <Content Include="Scripts\jquery.signalR-2.0.3.min.js" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

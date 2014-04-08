@@ -130,18 +130,26 @@ namespace Spotbox.Player
 
         public static void SetPlaylist(Playlist playlist)
         {
+            var wasPlaying = playingState;
+            Pause();
             CurrentPlaylist = playlist;
             Console.WriteLine("Setting playlist: {0}", playlist.PlaylistInfo.Name);
+            CurrentlyPlayingTrack = null;
             _playlistPosition = 0;
+            if (wasPlaying == PlayingState.Playing)
+            {
+                Play();
+            }
         }
 
         public static bool SetPlaylist(String playlistName)
         {
             var playlistInfos = Spotify.Spotify.GetAllPlaylists();
-            var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name == playlistName);
+            var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name.ToLower() == playlistName.ToLower());
             if (matchingPlaylistInfo != null)
             {
                 SetPlaylist(matchingPlaylistInfo.GetPlaylist());
+                
                 return true;
             }
 

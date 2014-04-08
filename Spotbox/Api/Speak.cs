@@ -13,14 +13,14 @@ namespace Spotbox.Api
             Post["/speak"] = x =>
             {
                 Audio.Pause();
-                var speach = this.Bind<Speech>();
+                var speach = this.Bind<SimpleInput>();
                 var synthesizer = new SpeechSynthesizer
                 {
                     Volume = 100, 
                     Rate = -2
                 };
                 
-                synthesizer.Speak(speach.Script);
+                synthesizer.Speak(speach.Value);
                 Audio.Play();
                 return HttpStatusCode.OK;
             };
