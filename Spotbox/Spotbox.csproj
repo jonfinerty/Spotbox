@@ -104,7 +104,6 @@
     <Compile Include="Api\Playlist.cs" />
     <Compile Include="Api\Playlists.cs" />
     <Compile Include="Api\Speak.cs" />
-    <Compile Include="Player\Audio.cs" />
     <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
     <Compile Include="Player\Spotify\Extensions.cs" />
     <Compile Include="Player\Spotify\AlbumCover.cs" />
