@@ -46,7 +46,12 @@ namespace Spotbox.Player
 
         public void AddSamples(byte[] buffer, int i, int length)
         {
-            _bufferedWaveProvider.AddSamples(buffer, i, length);
+            var Empty = buffer.All(bufferByte => bufferByte == default(Byte));
+
+            if (!Empty)
+            {
+                _bufferedWaveProvider.AddSamples(buffer, i, length);
+            }
         }
 
         public void SetBufferFinished(bool finished)
@@ -58,5 +63,6 @@ namespace Spotbox.Player
         {
             _bufferedWaveProvider.ClearBuffer();
         }
+
     }
 }

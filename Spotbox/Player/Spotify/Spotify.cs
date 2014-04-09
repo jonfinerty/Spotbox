@@ -79,8 +79,8 @@ namespace Spotbox.Player.Spotify
 
                     var playlist = foundPlaylistInfo.GetPlaylist();
                     currentPlaylist = playlist;
-                    playlist.SetPlaylistPosition(lastPosition);
-                    playlist.Play();
+                    playlist.SetPlaylistPosition(lastPosition < playlist.Tracks.Count ? lastPosition : 0);
+
                     return;
                 }
             }

@@ -1,20 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Reflection;
 using libspotifydotnet;
+using log4net;
 using Newtonsoft.Json;
 
 namespace Spotbox.Player.Spotify
 {
     public class Track
     {
+        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly Session session;
 
         public Track(IntPtr trackPtr, Session session)
         {
             this.session = session;
             TrackPtr = trackPtr;
-            Wait.For(() => libspotify.sp_track_is_loaded(TrackPtr));
+            Wait.For(IsLoaded);
             SetTrackMetaData();
         }
 
@@ -53,6 +55,17 @@ namespace Spotbox.Player.Spotify
                     Artists.Add(libspotify.sp_artist_name(artistPtr).PtrToString());
                 }
             }
+        }
+
+        private bool IsLoaded()
+        {
+            if (libspotify.sp_track_get_availability(session.SessionPtr, TrackPtr) != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
+            {
+                _logger.WarnFormat("Unavailable Track Created");
+                return true;
+            }
+
+            return libspotify.sp_track_is_loaded(TrackPtr);
         }
     }
 }

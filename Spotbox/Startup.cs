@@ -48,7 +48,11 @@ namespace Spotbox
 
             var spotify = new Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
 
-            container.Register(typeof(Spotify), spotify);
+            // for api modules
+            container.Register(spotify);
+
+            // for application startup
+            TinyIoCContainer.Current.Register(spotify);
 
             pipelines.BeforeRequest += (ctx) =>
             {

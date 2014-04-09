@@ -80,6 +80,11 @@ namespace Spotbox.Player.Spotify
             session.Play(track, PlayNextTrack);
         }
 
+        public void Unpause()
+        {
+            session.Unpause();
+        }
+
         public void Pause()
         {
             session.Pause();
@@ -87,20 +92,29 @@ namespace Spotbox.Player.Spotify
 
         public void PlayPreviousTrack()
         {
-            currentPlaylistPosition--;
-            Play();
+            if (currentPlaylistPosition > 0)
+            {
+                currentPlaylistPosition--;
+                Play();
+            }
         }
 
         public void PlayNextTrack()
         {
-            currentPlaylistPosition++;
-            Play();
+            if (currentPlaylistPosition < Tracks.Count - 1)
+            {
+                currentPlaylistPosition++;
+                Play();
+            }
         }
 
         public void SetPlaylistPosition(int position)
         {
-            currentPlaylistPosition = position;
-            Play();
+            if (position >= 0 && position < Tracks.Count)
+            {
+                currentPlaylistPosition = position;
+                Play();
+            }
         }
 
         public Track GetCurrentTrack()
@@ -189,6 +203,7 @@ namespace Spotbox.Player.Spotify
             foreach (var trackPtr in tracksPtr)
             {
                 var newTrack = new Track(trackPtr, session);
+
                 Tracks.Insert(position, newTrack);
                 _logger.InfoFormat("Track sync added: {0}", newTrack.Name);
                 PlaylistInfo.TrackCount++;

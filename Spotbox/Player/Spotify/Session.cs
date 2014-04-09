@@ -25,7 +25,7 @@ namespace Spotbox.Player.Spotify
 
         private readonly HaltableBufferedWaveProvider _waveProvider;
 
-        private readonly WaveOut _waveOutDevice = new WaveOut { DesiredLatency = 200 };
+        private WaveOutEvent _waveOutDevice;
 
         private readonly EventHandler<StoppedEventArgs> playbackStoppedHandler;
 
@@ -37,9 +37,11 @@ namespace Spotbox.Player.Spotify
 
         public Session(byte[] appkey)
         {
+            _waveOutDevice = new WaveOutEvent { DesiredLatency = 200 };
+
             playbackStoppedHandler = (sender, args) =>
             {
-                _logger.InfoFormat("Track Playback Stopped");
+                _logger.InfoFormat("Track Playback Stopped: {0}", args.Exception);
                 if (endOfTrackCallback != null)
                 {
                     endOfTrackCallback();
@@ -83,6 +85,7 @@ namespace Spotbox.Player.Spotify
             _waveProvider = new HaltableBufferedWaveProvider(waveFormat);
             _waveOutDevice.Init(_waveProvider);
             _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
+
         }
 
         public delegate void EndOfTrackCallbackDelegate();
@@ -103,9 +106,9 @@ namespace Spotbox.Player.Spotify
             libspotify.sp_session_logout(SessionPtr);
         }
 
-        public void Play()
+        public void Unpause()
         {
-            if (_waveOutDevice.PlaybackState != PlaybackState.Playing)
+            if (_waveOutDevice.PlaybackState == PlaybackState.Paused)
             {
                 _waveOutDevice.Play();
             }            
@@ -126,19 +129,32 @@ namespace Spotbox.Player.Spotify
 
         public void Play(Track track, EndOfTrackCallbackDelegate endOfTrackCallbackDelegate)
         {
-            endOfTrackCallback = endOfTrackCallbackDelegate;
-            var wasPlaying = _waveOutDevice.PlaybackState == PlaybackState.Playing;
+            _waveOutDevice.PlaybackStopped -= playbackStoppedHandler;
 
-            _waveProvider.ClearBuffer();
-            _logger.InfoFormat("Playing track: {0} - {1}", track.Name, track.Artists);
+            var wasPlaying = _waveOutDevice.PlaybackState != PlaybackState.Paused;
+
+            _waveOutDevice.Stop();
+            _waveOutDevice.Dispose();
+
+            endOfTrackCallback = endOfTrackCallbackDelegate;
+
+            _logger.InfoFormat("Playing track: {0} - {1}", track.Name, string.Join(",", track.Artists));
             BroadcastTrackChange(track);
-            StartLoadingTrackAudio(track.TrackPtr);
+
+            _waveOutDevice = new WaveOutEvent {DesiredLatency = 200};
+            _waveProvider.ClearBuffer();
             _waveProvider.SetBufferFinished(false);
-            
+
+            StartLoadingTrackAudio(track.TrackPtr);
+
+            _waveOutDevice.Init(_waveProvider);
+
             if (wasPlaying)
             {
                 _waveOutDevice.Play();
             }
+
+            _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
         }
 
         private void BroadcastTrackChange(Track track)

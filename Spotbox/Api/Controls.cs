@@ -1,5 +1,4 @@
 ﻿using Nancy;
-using Spotbox.Player;
 using Spotbox.Player.Spotify;
 
 namespace Spotbox.Api
@@ -10,7 +9,7 @@ namespace Spotbox.Api
         {
             Post["/play"] = x =>
             {
-                spotify.GetCurrentPlaylist().Play();
+                spotify.GetCurrentPlaylist().Unpause();
                 return HttpStatusCode.OK;
             };
 

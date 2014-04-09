@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Configuration;
-using System.IO;
 using System.Reflection;
 
 using Microsoft.Owin.Hosting;
 
 using Nancy.TinyIoc;
-
-using Spotbox.Player;
 using Spotbox.Player.Spotify;
 
 using log4net;
@@ -25,7 +21,7 @@ namespace Spotbox
 
         private static void StartServer()
         {
-            const string hostUri = "http://+:80/";
+            const string hostUri = "http://+:4050/";
 
             using (WebApp.Start<Startup>(hostUri))
             {
