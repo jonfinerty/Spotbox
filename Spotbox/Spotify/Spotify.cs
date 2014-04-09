@@ -5,12 +5,10 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-
 using libspotifydotnet;
-
 using log4net;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class Spotify
     {

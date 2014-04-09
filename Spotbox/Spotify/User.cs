@@ -1,8 +1,7 @@
 ﻿using System;
-
 using libspotifydotnet;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class User
     {

@@ -2,18 +2,13 @@
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-
 using libspotifydotnet;
-
 using log4net;
-
 using Microsoft.AspNet.SignalR;
-
 using NAudio.Wave;
-
 using Newtonsoft.Json;
 
-namespace Spotbox.Player.Spotify 
+namespace Spotbox.Spotify 
 {
     public class Session 
     {

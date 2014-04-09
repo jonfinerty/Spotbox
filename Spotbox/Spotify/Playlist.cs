@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
-
 using libspotifydotnet;
 using log4net;
 using Newtonsoft.Json;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class Playlist
     {

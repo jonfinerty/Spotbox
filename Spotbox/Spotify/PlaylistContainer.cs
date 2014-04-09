@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
-
 using log4net;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class PlaylistContainer
     {

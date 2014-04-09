@@ -3,13 +3,11 @@ using Nancy;
 
 using Newtonsoft.Json;
 
-using Spotbox.Player.Spotify;
-
 namespace Spotbox.Api
 {
     public class Playing : NancyModule
     {
-        public Playing(Spotify spotify)
+        public Playing(Spotify.Spotify spotify)
         {
             Get["/playing"] = x =>
             {

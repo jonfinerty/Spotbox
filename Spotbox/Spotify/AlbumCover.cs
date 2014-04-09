@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-
 using libspotifydotnet;
 
-namespace Spotbox.Player.Spotify 
+namespace Spotbox.Spotify 
 {
     public class AlbumCover 
     {

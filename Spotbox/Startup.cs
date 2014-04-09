@@ -1,9 +1,6 @@
 ﻿using System.Configuration;
 using System.IO;
 using System.Reflection;
-
-using Spotbox.Player.Spotify;
-
 using log4net;
 
 using Microsoft.Owin;
@@ -46,7 +43,7 @@ namespace Spotbox
             var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
             var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
 
-            var spotify = new Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
+            var spotify = new Spotify.Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
 
             // for api modules
             container.Register(spotify);

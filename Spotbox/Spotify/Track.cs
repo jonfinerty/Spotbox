@@ -5,7 +5,7 @@ using libspotifydotnet;
 using log4net;
 using Newtonsoft.Json;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class Track
     {

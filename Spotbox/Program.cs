@@ -4,8 +4,6 @@ using System.Reflection;
 using Microsoft.Owin.Hosting;
 
 using Nancy.TinyIoc;
-using Spotbox.Player.Spotify;
-
 using log4net;
 
 namespace Spotbox
@@ -27,7 +25,7 @@ namespace Spotbox
             {
                 _logger.InfoFormat("Hosting Spotbox at: {0}", hostUri);
 
-                var spotify = TinyIoCContainer.Current.Resolve<Spotify>();
+                var spotify = TinyIoCContainer.Current.Resolve<Spotify.Spotify>();
                 spotify.PlayLastPlayingPlaylist();
 
                 Console.ReadLine();

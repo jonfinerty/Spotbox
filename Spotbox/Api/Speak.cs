@@ -2,13 +2,12 @@
 using Nancy;
 using Nancy.ModelBinding;
 using Spotbox.Api.Models;
-using Spotbox.Player.Spotify;
 
 namespace Spotbox.Api
 {
     public class Speak : NancyModule
     {
-        public Speak(Spotify spotify)
+        public Speak(Spotify.Spotify spotify)
         {
             Post["/speak"] = x =>
             {

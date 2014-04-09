@@ -1,11 +1,10 @@
 ﻿using Nancy;
-using Spotbox.Player.Spotify;
 
 namespace Spotbox.Api
 {
     public class Controls : NancyModule
     {
-        public Controls(Spotify spotify)
+        public Controls(Spotify.Spotify spotify)
         {
             Post["/play"] = x =>
             {

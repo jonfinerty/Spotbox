@@ -2,7 +2,7 @@
 using libspotifydotnet;
 using Newtonsoft.Json;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class PlaylistInfo
     {
