@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class Wait
     {        

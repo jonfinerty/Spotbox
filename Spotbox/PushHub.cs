@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNet.SignalR;
+
+using Nancy.TinyIoc;
+
 using Newtonsoft.Json;
-using Spotbox.Player;
 
 namespace Spotbox
 {
@@ -8,7 +10,9 @@ namespace Spotbox
     {
         public void RequestTrack()
         {
-            Clients.Caller.newTrack(JsonConvert.SerializeObject(Audio.CurrentlyPlayingTrack));
+            var spotify = TinyIoCContainer.Current.Resolve<Spotify.Spotify>();
+            var track = spotify.GetCurrentPlaylist().GetCurrentTrack();
+            Clients.Caller.newTrack(JsonConvert.SerializeObject(track));
         }
     }
 }

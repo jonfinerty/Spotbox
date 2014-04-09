@@ -2,17 +2,16 @@
 using Nancy;
 
 using Newtonsoft.Json;
-using Spotbox.Player;
 
 namespace Spotbox.Api
 {
     public class Playing : NancyModule
     {
-        public Playing()
+        public Playing(Spotify.Spotify spotify)
         {
             Get["/playing"] = x =>
             {
-                var track = Audio.CurrentlyPlayingTrack;
+                var track = spotify.GetCurrentPlaylist().GetCurrentTrack();
                 var response = (Response) JsonConvert.SerializeObject(track);
                 response.ContentType = "application/json";
                 return response;
@@ -20,9 +19,10 @@ namespace Spotbox.Api
 
             Get["/playing/cover.jpeg"] = x =>
             {
-                if (Audio.CurrentlyPlayingTrack != null)
+                var track = spotify.GetCurrentPlaylist().GetCurrentTrack();
+                if (track != null)
                 {
-                    var imageBytes = Audio.CurrentlyPlayingTrack.GetAlbumArt();
+                    var imageBytes = track.GetAlbumArt();
                     return new ByteArrayResponse(imageBytes, "image/jpeg");
                 }
 

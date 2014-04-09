@@ -1,33 +1,32 @@
 ﻿using Nancy;
-using Spotbox.Player;
 
 namespace Spotbox.Api
 {
     public class Controls : NancyModule
     {
-        public Controls()
+        public Controls(Spotify.Spotify spotify)
         {
             Post["/play"] = x =>
             {
-                Audio.Play();
+                spotify.GetCurrentPlaylist().Unpause();
                 return HttpStatusCode.OK;
             };
 
             Post["/pause"] = x =>
             {
-                Audio.Pause();
+                spotify.GetCurrentPlaylist().Pause();
                 return HttpStatusCode.OK;
             };
 
             Post["/next"] = x =>
             {
-                Audio.Next();
+                spotify.GetCurrentPlaylist().PlayNextTrack();
                 return HttpStatusCode.OK;
             };
 
             Post["/prev"] = x =>
             {
-                Audio.Previous();
+                spotify.GetCurrentPlaylist().PlayPreviousTrack();
                 return HttpStatusCode.OK;
             };
         }   

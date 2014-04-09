@@ -2,7 +2,7 @@
 using System.Linq;
 using NAudio.Wave;
 
-namespace Spotbox.Player
+namespace Spotbox.Spotify
 {
     public class HaltableBufferedWaveProvider : IWaveProvider
     {
@@ -12,7 +12,11 @@ namespace Spotbox.Player
 
         public HaltableBufferedWaveProvider(WaveFormat waveFormat)
         {
-            _bufferedWaveProvider = new BufferedWaveProvider(waveFormat) { DiscardOnBufferOverflow = true };
+            _bufferedWaveProvider = new BufferedWaveProvider(waveFormat)
+                                    {
+                                        DiscardOnBufferOverflow = true, 
+                                        BufferDuration = new TimeSpan(0, 10, 0)
+                                    };
         }
 
         public WaveFormat WaveFormat
@@ -20,19 +24,6 @@ namespace Spotbox.Player
             get
             {
                 return _bufferedWaveProvider.WaveFormat;
-            }
-        }
-
-        public TimeSpan BufferDuration 
-        {
-            get
-            {
-                return _bufferedWaveProvider.BufferDuration;
-            }
-
-            set
-            {
-                _bufferedWaveProvider.BufferDuration = value;
             }
         }
 
@@ -55,12 +46,23 @@ namespace Spotbox.Player
 
         public void AddSamples(byte[] buffer, int i, int length)
         {
-            _bufferedWaveProvider.AddSamples(buffer, i, length);
+            var Empty = buffer.All(bufferByte => bufferByte == default(Byte));
+
+            if (!Empty)
+            {
+                _bufferedWaveProvider.AddSamples(buffer, i, length);
+            }
         }
 
-        public void SetBufferFinished()
+        public void SetBufferFinished(bool finished)
         {
-            _bufferFinished = true;
+            _bufferFinished = finished;
         }
+
+        public void ClearBuffer()
+        {
+            _bufferedWaveProvider.ClearBuffer();
+        }
+
     }
 }

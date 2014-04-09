@@ -3,20 +3,23 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
-
 using log4net;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     public class PlaylistContainer
     {
+        private readonly Session session;
+
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private IntPtr _callbacksPtr;
 
-        public PlaylistContainer(IntPtr playlistContainerPtr)
+        public PlaylistContainer(Session session)
         {
-            PlaylistContainerPtr = playlistContainerPtr;
+            this.session = session;
+
+            PlaylistContainerPtr = libspotify.sp_session_playlistcontainer(session.SessionPtr);            
             AddCallbacks();
             Wait.For(() => libspotify.sp_playlistcontainer_is_loaded(PlaylistContainerPtr));
 
@@ -47,7 +50,7 @@ namespace Spotbox.Player.Spotify
                 }
 
                 var playlistPtr = libspotify.sp_playlistcontainer_playlist(PlaylistContainerPtr, i);
-                var playlistInfo = new PlaylistInfo(playlistPtr);
+                var playlistInfo = new PlaylistInfo(playlistPtr, session);
                 PlaylistInfos.Add(playlistInfo);
             }
         }
@@ -88,7 +91,7 @@ namespace Spotbox.Player.Spotify
 
         private void PlaylistAdded(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            PlaylistInfos.Insert(position, new PlaylistInfo(playlistPtr));
+            PlaylistInfos.Insert(position, new PlaylistInfo(playlistPtr, session));
             _logger.InfoFormat("Playlist added at position {0}", position);
         }
 

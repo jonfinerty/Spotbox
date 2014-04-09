@@ -13,6 +13,7 @@
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -103,18 +104,6 @@
     <Compile Include="Api\Playlist.cs" />
     <Compile Include="Api\Playlists.cs" />
     <Compile Include="Api\Speak.cs" />
-    <Compile Include="Player\Audio.cs" />
-    <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
-    <Compile Include="Player\Spotify\Extensions.cs" />
-    <Compile Include="Player\Spotify\AlbumCover.cs" />
-    <Compile Include="Player\Spotify\Playlist.cs" />
-    <Compile Include="Player\Spotify\PlaylistContainer.cs" />
-    <Compile Include="Player\Spotify\PlaylistInfo.cs" />
-    <Compile Include="Player\Spotify\Session.cs" />
-    <Compile Include="Player\Spotify\Spotify.cs" />
-    <Compile Include="Player\Spotify\Track.cs" />
-    <Compile Include="Player\Spotify\User.cs" />
-    <Compile Include="Player\Spotify\Wait.cs" />
     <Compile Include="PushHub.cs" />
     <Compile Include="Settings.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -123,11 +112,24 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Spotify\AlbumCover.cs" />
+    <Compile Include="Spotify\Extensions.cs" />
+    <Compile Include="Spotify\HaltableBufferedWaveProvider.cs" />
+    <Compile Include="Spotify\Playlist.cs" />
+    <Compile Include="Spotify\PlaylistContainer.cs" />
+    <Compile Include="Spotify\PlaylistInfo.cs" />
+    <Compile Include="Spotify\Session.cs" />
+    <Compile Include="Spotify\Spotify.cs" />
+    <Compile Include="Spotify\Track.cs" />
+    <Compile Include="Spotify\User.cs" />
+    <Compile Include="Spotify\Wait.cs" />
     <Compile Include="Startup.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.example.config" />
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>

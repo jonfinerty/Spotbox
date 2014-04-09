@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Configuration;
-using System.IO;
 using System.Reflection;
 
 using Microsoft.Owin.Hosting;
-using Spotbox.Player;
-using Spotbox.Player.Spotify;
 
+using Nancy.TinyIoc;
 using log4net;
 
 namespace Spotbox
@@ -17,49 +14,22 @@ namespace Spotbox
 
         static void Main()
         {
-            var spotifyApiKey = File.ReadAllBytes(ConfigurationManager.AppSettings["SpotifyApiKeyPath"]);
-            var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
-            var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
-
-            Spotify.Login(spotifyApiKey, spotifyUsername, spotifyPassword);
-
             StartServer();
         }
 
         private static void StartServer()
         {
-            const string hostUri = "http://+:80/";
+            const string hostUri = "http://+:4050/";
 
             using (WebApp.Start<Startup>(hostUri))
             {
                 _logger.InfoFormat("Hosting Spotbox at: {0}", hostUri);
 
-                PlayLastPlaying();
+                var spotify = TinyIoCContainer.Current.Resolve<Spotify.Spotify>();
+                spotify.PlayLastPlayingPlaylist();
 
                 Console.ReadLine();
-                
-                Spotify.ShutDown();
             }
         }
-
-        private static void PlayLastPlaying()
-        {
-            var lastPlaylistName = Settings.Default.CurrentPlaylistName;
-            if (lastPlaylistName != "")
-            {
-                var found = Audio.SetPlaylist(lastPlaylistName);
-                if (found)
-                {
-                    var lastPosition = Settings.Default.CurrentPlaylistPosition;
-
-                    Audio.SetPlaylistPosition(lastPosition);
-                    Audio.Play();
-                }
-
-                return;
-            }
-            Spotify.PlayDefaultPlaylist();
-        }
-
     }
 }

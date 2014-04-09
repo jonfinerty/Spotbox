@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Spotbox.Player.Spotify
+namespace Spotbox.Spotify
 {
     static class Extensions
     {
@@ -29,6 +29,11 @@ namespace Spotbox.Player.Spotify
             }
 
             return string.Empty;
+        }
+
+        public static IntPtr GetFunctionPtr(this Delegate inputDelegate)
+        {
+            return Marshal.GetFunctionPointerForDelegate(inputDelegate);
         }
     }
 }
