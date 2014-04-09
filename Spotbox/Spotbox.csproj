@@ -105,17 +105,6 @@
     <Compile Include="Api\Speak.cs" />
     <Compile Include="Player\Audio.cs" />
     <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
-    <Compile Include="Player\Libspotifydotnet\Album.cs" />
-    <Compile Include="Player\Libspotifydotnet\Artist.cs" />
-    <Compile Include="Player\Libspotifydotnet\Functions.cs" />
-    <Compile Include="Player\Libspotifydotnet\Image.cs" />
-    <Compile Include="Player\Libspotifydotnet\Playlist.cs" />
-    <Compile Include="Player\Libspotifydotnet\PlaylistContainer.cs" />
-    <Compile Include="Player\Libspotifydotnet\Session.cs" />
-    <Compile Include="Player\Libspotifydotnet\Spotify.cs" />
-    <Compile Include="Player\Libspotifydotnet\TopList.cs" />
-    <Compile Include="Player\Libspotifydotnet\Track.cs" />
-    <Compile Include="Player\Libspotifydotnet\User.cs" />
     <Compile Include="Player\Spotify\Extensions.cs" />
     <Compile Include="Player\Spotify\AlbumCover.cs" />
     <Compile Include="Player\Spotify\Playlist.cs" />

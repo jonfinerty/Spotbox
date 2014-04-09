@@ -1,7 +1,6 @@
 ﻿using System;
 using libspotifydotnet;
 using Newtonsoft.Json;
-using Spotbox.Player.Libspotifydotnet;
 
 namespace Spotbox.Player.Spotify
 {
@@ -34,9 +33,9 @@ namespace Spotbox.Player.Spotify
         private void SetPlaylistInfo(IntPtr playlistPtr)
         {
             PlaylistType = libspotify.sp_playlist_type.SP_PLAYLIST_TYPE_PLAYLIST;
-            Name = Functions.PtrToString(libspotify.sp_playlist_name(playlistPtr));
+            Name = libspotify.sp_playlist_name(playlistPtr).PtrToString();
             TrackCount = libspotify.sp_playlist_num_tracks(playlistPtr);
-            Description = Functions.PtrToString(libspotify.sp_playlist_get_description(PlaylistPtr));
+            Description = libspotify.sp_playlist_get_description(PlaylistPtr).PtrToString();
             SubscriberCount = (int) libspotify.sp_playlist_num_subscribers(PlaylistPtr);
             IsInRam = libspotify.sp_playlist_is_in_ram(Spotify.GetSessionPtr(), PlaylistPtr);
             OfflineStatus = libspotify.sp_playlist_get_offline_status(Spotify.GetSessionPtr(), PlaylistPtr);

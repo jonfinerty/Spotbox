@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using Spotbox.Player.Libspotifydotnet;
-
 using libspotifydotnet;
 using Newtonsoft.Json;
 
@@ -37,7 +35,7 @@ namespace Spotbox.Player.Spotify
 
         private void SetTrackMetaData()
         {
-            Name = Functions.PtrToString(libspotify.sp_track_name(TrackPtr));
+            Name = libspotify.sp_track_name(TrackPtr).PtrToString();
             Length = (int)(libspotify.sp_track_duration(TrackPtr) / 1000M);
 
             AlbumPtr = libspotify.sp_track_album(TrackPtr);
