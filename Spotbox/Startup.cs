@@ -1,4 +1,8 @@
-﻿using System.Reflection;
+﻿using System.Configuration;
+using System.IO;
+using System.Reflection;
+
+using Spotbox.Player.Spotify;
 
 using log4net;
 
@@ -38,6 +42,14 @@ namespace Spotbox
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
+            var spotifyApiKey = File.ReadAllBytes(ConfigurationManager.AppSettings["SpotifyApiKeyPath"]);
+            var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
+            var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
+
+            var spotify = new Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
+
+            container.Register(typeof(Spotify), spotify);
+
             pipelines.BeforeRequest += (ctx) =>
             {
                 _logger.InfoFormat("Received request {0} {1} by {2}", ctx.Request.Method, ctx.Request.Path, ctx.Request.UserHostAddress);

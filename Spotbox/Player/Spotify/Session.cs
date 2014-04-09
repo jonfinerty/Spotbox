@@ -2,25 +2,50 @@
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+
 using libspotifydotnet;
 
 using log4net;
+
+using Microsoft.AspNet.SignalR;
+
+using NAudio.Wave;
+
+using Newtonsoft.Json;
 
 namespace Spotbox.Player.Spotify 
 {
     public class Session 
     {
+        public IntPtr SessionPtr;
+
+        const int _sampleRate = 44100;
+
+        const int _channels = 2;
+
+        private readonly HaltableBufferedWaveProvider _waveProvider;
+
+        private readonly WaveOut _waveOutDevice = new WaveOut { DesiredLatency = 200 };
+
+        private readonly EventHandler<StoppedEventArgs> playbackStoppedHandler;
+
+        private readonly WaveFormat waveFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, _sampleRate * _channels, 1, _sampleRate * 2 * _channels, _channels, 16);
+
+        private EndOfTrackCallbackDelegate endOfTrackCallback;
+
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        public IntPtr SessionPtr;      
-
-        public static event Action<IntPtr> OnNotifyMainThread;        
-        public static event Action<IntPtr> OnLoggedIn;
-        public static event Action<byte[]> OnAudioDataArrived;
-        public static event Action<object> OnAudioStreamComplete;
 
         public Session(byte[] appkey)
         {
+            playbackStoppedHandler = (sender, args) =>
+            {
+                _logger.InfoFormat("Track Playback Stopped");
+                if (endOfTrackCallback != null)
+                {
+                    endOfTrackCallback();
+                }
+            };
+
             var callbacksPtr = AddCallbacks();
 
             var config = new libspotify.sp_session_config
@@ -54,10 +79,20 @@ namespace Spotbox.Player.Spotify
 
             SessionPtr = sessionPtr;
             libspotify.sp_session_set_connection_type(sessionPtr, libspotify.sp_connection_type.SP_CONNECTION_TYPE_WIRED);
+
+            _waveProvider = new HaltableBufferedWaveProvider(waveFormat);
+            _waveOutDevice.Init(_waveProvider);
+            _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
         }
+
+        public delegate void EndOfTrackCallbackDelegate();
 
         public void Login(string username, string password)
         {
+            _logger.InfoFormat("Logging into spotify with credentials");
+            _logger.InfoFormat("Username: {0}", username);
+            _logger.InfoFormat("Password: {0}", new string('*', password.Length));
+
             libspotify.sp_session_login(SessionPtr, username, password, false, null);
 
             Wait.For(() => libspotify.sp_session_connectionstate(SessionPtr) == libspotify.sp_connectionstate.LOGGED_IN);
@@ -67,110 +102,181 @@ namespace Spotbox.Player.Spotify
         {
             libspotify.sp_session_logout(SessionPtr);
         }
-        
-        public libspotify.sp_error LoadPlayer(IntPtr trackPtr) 
+
+        public void Play()
         {
-            try
+            if (_waveOutDevice.PlaybackState != PlaybackState.Playing)
             {
-                return libspotify.sp_session_player_load(SessionPtr, trackPtr);
-            }
-            catch
+                _waveOutDevice.Play();
+            }            
+        }
+
+        public void Pause()
+        {
+            if (_waveOutDevice.PlaybackState == PlaybackState.Playing)
             {
-                return libspotify.sp_error.OK;
+                _waveOutDevice.Pause();
             }
         }
 
-        public void Play() 
+        public bool IsPlaying()
         {
+            return _waveOutDevice.PlaybackState == PlaybackState.Playing;
+        }
+
+        public void Play(Track track, EndOfTrackCallbackDelegate endOfTrackCallbackDelegate)
+        {
+            endOfTrackCallback = endOfTrackCallbackDelegate;
+            var wasPlaying = _waveOutDevice.PlaybackState == PlaybackState.Playing;
+
+            _waveProvider.ClearBuffer();
+            _logger.InfoFormat("Playing track: {0} - {1}", track.Name, track.Artists);
+            BroadcastTrackChange(track);
+            StartLoadingTrackAudio(track.TrackPtr);
+            _waveProvider.SetBufferFinished(false);
+            
+            if (wasPlaying)
+            {
+                _waveOutDevice.Play();
+            }
+        }
+
+        private void BroadcastTrackChange(Track track)
+        {
+            var hubContext = GlobalHost.ConnectionManager.GetHubContext<PushHub>();
+            hubContext.Clients.All.newTrack(JsonConvert.SerializeObject(track));
+        }
+
+        private void StartLoadingTrackAudio(IntPtr trackPtr)
+        {
+            libspotify.sp_session_player_play(SessionPtr, false);
+            libspotify.sp_session_player_unload(SessionPtr);
+
+            var avail = libspotify.sp_track_get_availability(SessionPtr, trackPtr);
+
+            if (avail != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
+            {
+                _logger.ErrorFormat("Track is unavailable ({0}).", avail);
+                if (endOfTrackCallback != null)
+                {
+                    endOfTrackCallback();
+                }
+
+                return;
+            }
+
+            var error = libspotify.sp_session_player_load(SessionPtr, trackPtr);
+
+            if (error != libspotify.sp_error.OK)
+            {
+                _logger.ErrorFormat("[Spotify] {0}", libspotify.sp_error_message(error));
+                if (endOfTrackCallback != null)
+                {
+                    endOfTrackCallback();
+                }
+
+                return;
+            }
+
             libspotify.sp_session_player_play(SessionPtr, true);
         }
 
-        public void Pause() 
-        {
-            libspotify.sp_session_player_play(SessionPtr, false);
-        }
+        #region Callbacks
 
-        public void UnloadPlayer() 
-        {
-            libspotify.sp_session_player_unload(SessionPtr);
-        }
+        private delegate void ConnectionErrorDelegate(IntPtr sessionPtr, libspotify.sp_error error);
+        private delegate void EndOfTrackDelegate(IntPtr sessionPtr);
+        private delegate void GetAudioBufferStatsDelegate(IntPtr sessionPtr, IntPtr statsPtr);
+        private delegate void LogMessageDelegate(IntPtr sessionPtr, string message);
+        private delegate void LoggedInDelegate(IntPtr sessionPtr, libspotify.sp_error error);
+        private delegate void LoggedOutDelegate(IntPtr sessionPtr);
+        private delegate void MessageToUserDelegate(IntPtr sessionPtr, string message);
+        private delegate void MetadataUpdatedDelegate(IntPtr sessionPtr);
+        private delegate int MusicDeliveryDelegate(IntPtr sessionPtr, IntPtr formatPtr, IntPtr framesPtr, int numberOfFrames);
+        private delegate void NotifyMainThreadDelegate(IntPtr sessionPtr);
+        private delegate void OfflineStatusUpdatedDelegate(IntPtr sessionPtr);
+        private delegate void PlayTokenLostDelegate(IntPtr sessionPtr);
+        private delegate void StartPlaybackDelegate(IntPtr sessionPtr);
+        private delegate void StopPlaybackDelegate(IntPtr sessionPtr);
+        private delegate void StreamingErrorDelegate(IntPtr sessionPtr, libspotify.sp_error error);
+        private delegate void UserinfoUpdatedDelegate(IntPtr sessionPtr);
 
-        private delegate void connection_error_delegate(IntPtr sessionPtr, libspotify.sp_error error);
-        private delegate void end_of_track_delegate(IntPtr sessionPtr);
-        private delegate void get_audio_buffer_stats_delegate(IntPtr sessionPtr, IntPtr statsPtr);
-        private delegate void log_message_delegate(IntPtr sessionPtr, string message);
-        private delegate void logged_in_delegate(IntPtr sessionPtr, libspotify.sp_error error);
-        private delegate void logged_out_delegate(IntPtr sessionPtr);
-        private delegate void message_to_user_delegate(IntPtr sessionPtr, string message);
-        private delegate void metadata_updated_delegate(IntPtr sessionPtr);
-        private delegate int music_delivery_delegate(IntPtr sessionPtr, IntPtr formatPtr, IntPtr framesPtr, int num_frames);
-        private delegate void notify_main_thread_delegate(IntPtr sessionPtr);
-        private delegate void offline_status_updated_delegate(IntPtr sessionPtr);
-        private delegate void play_token_lost_delegate(IntPtr sessionPtr);
-        private delegate void start_playback_delegate(IntPtr sessionPtr);
-        private delegate void stop_playback_delegate(IntPtr sessionPtr);
-        private delegate void streaming_error_delegate(IntPtr sessionPtr, libspotify.sp_error error);
-        private delegate void userinfo_updated_delegate(IntPtr sessionPtr);
-
-        private static connection_error_delegate fn_connection_error_delegate = ConnectionError;
-        private static end_of_track_delegate fn_end_of_track_delegate = EndOfTrack;
-        private static get_audio_buffer_stats_delegate fn_get_audio_buffer_stats_delegate = GetAudioBufferStats;
-        private static log_message_delegate fn_log_message = LogMessage;
-        private static logged_in_delegate fn_logged_in_delegate = LoggedIn;
-        private static logged_out_delegate fn_logged_out_delegate = LoggedOut;
-        private static message_to_user_delegate fn_message_to_user_delegate = MessageToUser;
-        private static metadata_updated_delegate fn_metadata_updated_delegate = MetadataUpdated;
-        private static music_delivery_delegate fn_music_delivery_delegate = MusicDelivery;
-        private static notify_main_thread_delegate fn_notify_main_thread_delegate = NotifyMainThread;
-        private static offline_status_updated_delegate fn_offline_status_updated_delegate = OfflineStatusUpdated;
-        private static play_token_lost_delegate fn_play_token_lost_delegate = PlayTokenLost;
-        private static start_playback_delegate fn_start_playback = StartPlayback;
-        private static stop_playback_delegate fn_stop_playback = StopPlayback;
-        private static streaming_error_delegate fn_streaming_error_delegate = StreamingError;
-        private static userinfo_updated_delegate fn_userinfo_updated_delegate = UserinfoUpdated;
+        private ConnectionErrorDelegate connectionErrorDelegate;
+        private EndOfTrackDelegate endOfTrackDelegate;
+        private GetAudioBufferStatsDelegate getAudioBufferStatsDelegate;
+        private LogMessageDelegate logMessageDelegate;
+        private LoggedInDelegate loggedInDelegate;
+        private LoggedOutDelegate loggedOutDelegate;
+        private MessageToUserDelegate messageToUserDelegate;
+        private MetadataUpdatedDelegate metadataUpdatedDelegate;
+        private MusicDeliveryDelegate musicDeliveryDelegate;
+        private NotifyMainThreadDelegate notifyMainThreadDelegate;
+        private OfflineStatusUpdatedDelegate offlineStatusUpdatedDelegate;
+        private PlayTokenLostDelegate playTokenLostDelegate;
+        private StartPlaybackDelegate startPlaybackDelegate;
+        private StopPlaybackDelegate stopPlaybackDelegate;
+        private StreamingErrorDelegate streamingErrorDelegate;
+        private UserinfoUpdatedDelegate userinfoUpdatedDelegate;
 
         private IntPtr AddCallbacks()
         {
-            var callbacks = new libspotify.sp_session_callbacks();
-            callbacks.connection_error = Marshal.GetFunctionPointerForDelegate(fn_connection_error_delegate);
-            callbacks.end_of_track = Marshal.GetFunctionPointerForDelegate(fn_end_of_track_delegate);
-            callbacks.get_audio_buffer_stats = Marshal.GetFunctionPointerForDelegate(fn_get_audio_buffer_stats_delegate);
-            callbacks.log_message = Marshal.GetFunctionPointerForDelegate(fn_log_message);
-            callbacks.logged_in = Marshal.GetFunctionPointerForDelegate(fn_logged_in_delegate);
-            callbacks.logged_out = Marshal.GetFunctionPointerForDelegate(fn_logged_out_delegate);
-            callbacks.message_to_user = Marshal.GetFunctionPointerForDelegate(fn_message_to_user_delegate);
-            callbacks.metadata_updated = Marshal.GetFunctionPointerForDelegate(fn_metadata_updated_delegate);
-            callbacks.music_delivery = Marshal.GetFunctionPointerForDelegate(fn_music_delivery_delegate);
-            callbacks.notify_main_thread = Marshal.GetFunctionPointerForDelegate(fn_notify_main_thread_delegate);
-            callbacks.offline_status_updated = Marshal.GetFunctionPointerForDelegate(fn_offline_status_updated_delegate);
-            callbacks.play_token_lost = Marshal.GetFunctionPointerForDelegate(fn_play_token_lost_delegate);
-            callbacks.start_playback = Marshal.GetFunctionPointerForDelegate(fn_start_playback);
-            callbacks.stop_playback = Marshal.GetFunctionPointerForDelegate(fn_stop_playback);
-            callbacks.streaming_error = Marshal.GetFunctionPointerForDelegate(fn_streaming_error_delegate);
-            callbacks.userinfo_updated = Marshal.GetFunctionPointerForDelegate(fn_userinfo_updated_delegate);
+            connectionErrorDelegate = ConnectionError;
+            endOfTrackDelegate = EndOfTrack;
+            getAudioBufferStatsDelegate = GetAudioBufferStats;
+            logMessageDelegate = LogMessage;
+            loggedInDelegate = LoggedIn;
+            loggedOutDelegate = LoggedOut;
+            messageToUserDelegate = MessageToUser;
+            metadataUpdatedDelegate = MetadataUpdated;
+            musicDeliveryDelegate = MusicDelivery;
+            notifyMainThreadDelegate = NotifyMainThread;
+            offlineStatusUpdatedDelegate = OfflineStatusUpdated;
+            playTokenLostDelegate = PlayTokenLost;
+            startPlaybackDelegate = StartPlayback;
+            stopPlaybackDelegate = StopPlayback;
+            streamingErrorDelegate = StreamingError;
+            userinfoUpdatedDelegate = UserinfoUpdated;
 
-            IntPtr callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(callbacks));
+            var callbacks = new libspotify.sp_session_callbacks
+                            {
+                                connection_error = connectionErrorDelegate.GetFunctionPtr(),
+                                end_of_track = endOfTrackDelegate.GetFunctionPtr(),
+                                get_audio_buffer_stats = getAudioBufferStatsDelegate.GetFunctionPtr(),
+                                log_message = logMessageDelegate.GetFunctionPtr(),
+                                logged_in = loggedInDelegate.GetFunctionPtr(),
+                                logged_out = loggedOutDelegate.GetFunctionPtr(),
+                                message_to_user = messageToUserDelegate.GetFunctionPtr(),
+                                metadata_updated = metadataUpdatedDelegate.GetFunctionPtr(),
+                                music_delivery = musicDeliveryDelegate.GetFunctionPtr(),
+                                notify_main_thread = notifyMainThreadDelegate.GetFunctionPtr(),
+                                offline_status_updated = offlineStatusUpdatedDelegate.GetFunctionPtr(),
+                                play_token_lost = playTokenLostDelegate.GetFunctionPtr(),
+                                start_playback = startPlaybackDelegate.GetFunctionPtr(),
+                                stop_playback = stopPlaybackDelegate.GetFunctionPtr(),
+                                streaming_error = streamingErrorDelegate.GetFunctionPtr(),
+                                userinfo_updated = userinfoUpdatedDelegate.GetFunctionPtr()
+                            };
+
+            var callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(callbacks));
             Marshal.StructureToPtr(callbacks, callbacksPtr, true);
 
             return callbacksPtr;
         }
 
-        private static void ConnectionError(IntPtr sessionPtr, libspotify.sp_error error) 
+        private void ConnectionError(IntPtr sessionPtr, libspotify.sp_error error)
         {
             _logger.ErrorFormat("Connection error: {0}", libspotify.sp_error_message(error));
         }
 
-        private static void EndOfTrack(IntPtr sessionPtr) 
+        private void EndOfTrack(IntPtr sessionPtr)
         {
-            if (OnAudioStreamComplete != null)
-            {
-                OnAudioStreamComplete(null);
-            }
+            _waveProvider.SetBufferFinished(true);
         }
 
-        private static void GetAudioBufferStats(IntPtr sessionPtr, IntPtr statsPtr) { }
+        private void GetAudioBufferStats(IntPtr sessionPtr, IntPtr statsPtr)
+        {
+        }
 
-        private static void LogMessage(IntPtr sessionPtr, string message) 
+        private void LogMessage(IntPtr sessionPtr, string message)
         {
             if (message.EndsWith("\n"))
             {
@@ -178,85 +284,77 @@ namespace Spotbox.Player.Spotify
             }
 
             _logger.DebugFormat("Libspotify Message: {0}", message);
-
         }
 
-        private static void LoggedIn(IntPtr sessionPtr, libspotify.sp_error error) 
+        private void LoggedIn(IntPtr sessionPtr, libspotify.sp_error error)
+        {   
+        }
+
+        private void LoggedOut(IntPtr sessionPtr)
         {
-            if (OnLoggedIn != null)
-            {
-                OnLoggedIn(sessionPtr);
-            }
         }
 
-        private static void LoggedOut(IntPtr sessionPtr) { }
-
-        private static void MessageToUser(IntPtr sessionPtr, string message) 
+        private void MessageToUser(IntPtr sessionPtr, string message)
         {
             _logger.DebugFormat("Message from Libspotify: {0}", message);
         }
 
-        private static void MetadataUpdated(IntPtr sessionPtr) 
+        private void MetadataUpdated(IntPtr sessionPtr)
         {
             _logger.DebugFormat("Metadata Updated");
         }
 
-        private static int MusicDelivery(IntPtr sessionPtr, IntPtr formatPtr, IntPtr framesPtr, int numberOfFrames) 
+        private int MusicDelivery(IntPtr sessionPtr, IntPtr formatPtr, IntPtr framesPtr, int numberOfFrames)
         {
             if (numberOfFrames == 0)
             {
                 return 0;
             }
-                
-            var format = (libspotify.sp_audioformat) Marshal.PtrToStructure(formatPtr, typeof(libspotify.sp_audioformat));
+
+            var format = (libspotify.sp_audioformat)Marshal.PtrToStructure(formatPtr, typeof(libspotify.sp_audioformat));
             var bufferLength = numberOfFrames * sizeof(short) * format.channels;
 
             var byteBuffer = new byte[bufferLength];
             Marshal.Copy(framesPtr, byteBuffer, 0, byteBuffer.Length);
 
-            if (OnAudioDataArrived != null)
-            {
-                OnAudioDataArrived(byteBuffer);
-            }
+            _waveProvider.AddSamples(byteBuffer, 0, byteBuffer.Length);
 
             return numberOfFrames;
-        }        
-
-        private static void NotifyMainThread(IntPtr sessionPtr)
-        {
-            if (OnNotifyMainThread != null && Spotify.GetSession() != null)
-            {
-                OnNotifyMainThread(Spotify.GetSessionPtr());
-            }
         }
 
-        private static void OfflineStatusUpdated(IntPtr sessionPtr) { }
+        private void NotifyMainThread(IntPtr sessionPtr)
+        {
+        }
 
-        private static void PlayTokenLost(IntPtr sessionPtr)
+        private void OfflineStatusUpdated(IntPtr sessionPtr)
+        {
+        }
+
+        private void PlayTokenLost(IntPtr sessionPtr)
         {
             _logger.WarnFormat("Play Token Lost");
         }
 
-        private static void StartPlayback(IntPtr sessionPtr) 
+        private void StartPlayback(IntPtr sessionPtr)
         {
-            _logger.DebugFormat("Start Playback");
+            _logger.DebugFormat("Playback Started");
         }
 
-        private static void StopPlayback(IntPtr sessionPtr)
+        private void StopPlayback(IntPtr sessionPtr)
         {
-            _logger.DebugFormat("Stop Playback");
+            _logger.DebugFormat("Playback Stopped");
         }
 
-        private static void StreamingError(IntPtr sessionPtr, libspotify.sp_error error)
+        private void StreamingError(IntPtr sessionPtr, libspotify.sp_error error)
         {
-            _logger.ErrorFormat( "Streaming error: {0}", libspotify.sp_error_message(error));
+            _logger.ErrorFormat("Streaming error: {0}", libspotify.sp_error_message(error));
         }
 
-        private static void UserinfoUpdated(IntPtr sessionPtr)
+        private void UserinfoUpdated(IntPtr sessionPtr)
         {
             _logger.DebugFormat("Userinfo Updated");
         }
 
+        #endregion
     }
-
 }

@@ -107,6 +107,7 @@
     <Compile Include="Player\HaltableBufferedWaveProvider.cs" />
     <Compile Include="Player\Spotify\Extensions.cs" />
     <Compile Include="Player\Spotify\AlbumCover.cs" />
+    <Compile Include="Player\Spotify\PlayingState.cs" />
     <Compile Include="Player\Spotify\Playlist.cs" />
     <Compile Include="Player\Spotify\PlaylistContainer.cs" />
     <Compile Include="Player\Spotify\PlaylistInfo.cs" />

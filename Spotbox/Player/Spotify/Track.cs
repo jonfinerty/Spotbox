@@ -8,8 +8,11 @@ namespace Spotbox.Player.Spotify
 {
     public class Track
     {
-        public Track(IntPtr trackPtr)
+        private readonly Session session;
+
+        public Track(IntPtr trackPtr, Session session)
         {
+            this.session = session;
             TrackPtr = trackPtr;
             Wait.For(() => libspotify.sp_track_is_loaded(TrackPtr));
             SetTrackMetaData();
@@ -29,7 +32,7 @@ namespace Spotbox.Player.Spotify
 
         public byte[] GetAlbumArt()
         {
-            var cover = new AlbumCover(AlbumPtr);
+            var cover = new AlbumCover(AlbumPtr, session);
             return cover.ImageBytes;
         }
 

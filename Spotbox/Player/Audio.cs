@@ -1,4 +1,5 @@
-﻿using System;
+﻿/*
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -147,21 +148,6 @@ namespace Spotbox.Player
             }
         }
 
-        public static bool SetPlaylist(String playlistName)
-        {
-            var playlistInfos = Spotify.Spotify.GetAllPlaylists();
-            var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name.ToLower() == playlistName.ToLower());
-            if (matchingPlaylistInfo != null)
-            {
-                SetPlaylist(matchingPlaylistInfo.GetPlaylist());
-                
-                return true;
-            }
-
-            logger.InfoFormat("No playlist found with name: {0}", playlistName);
-            return false;
-        }
-
         public static void SetPlaylistPosition(int position)
         {
             var wasPlaying = IsPlaying();
@@ -268,3 +254,4 @@ namespace Spotbox.Player
         }
     }
 }
+*/

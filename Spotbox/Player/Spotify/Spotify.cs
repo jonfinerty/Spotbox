@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 using libspotifydotnet;
 
@@ -15,44 +16,86 @@ namespace Spotbox.Player.Spotify
     {
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static AutoResetEvent _programSignal;
-        private static AutoResetEvent _mainSignal;
+        private readonly Session session;
 
-        private static bool _shutDown;
-        private static object _syncObj = new object();
+        private PlaylistContainer playlistContainer;
 
-        private static Thread _libSpotifyThread;
+        private bool _shutDown;
 
-        public delegate void LibSpotifyThreadMessageDelegate(object[] args);
-
-        public static bool Login(byte[] appkey, string username, string password)
+        public Spotify(byte[] appkey, string username, string password)
         {
             session = new Session(appkey);
 
-            _libSpotifyThread = new Thread(StartMainSpotifyThread);
-            _libSpotifyThread.Start();
-
-            _logger.InfoFormat("Logging into spotify with credentials");
-            _logger.InfoFormat("Username: {0}", username);
-            _logger.InfoFormat("Password: {0}", new string('*', password.Length));
+            new Task(StartMainSpotifyThread).Start();
 
             session.Login(username, password);
-
-            return true;
         }
 
-        public static void PlayDefaultPlaylist()
+        ~Spotify()
+        {
+            libspotify.sp_session_player_unload(session.SessionPtr);
+            libspotify.sp_session_logout(session.SessionPtr);
+
+            playlistContainer = null;
+
+            _shutDown = true;
+        }
+
+        public IntPtr GetSessionPtr()
+        {
+            return session.SessionPtr;
+        }
+
+        public Session GetSession()
+        {
+            return session;
+        }
+
+        public void PlayDefaultPlaylist()
         {
             var playlistInfos = GetAllPlaylists();
-            var playlistInfo = playlistInfos.Where(info => info.TrackCount > 0).Skip(1).FirstOrDefault();
-            _logger.InfoFormat("Playing first playlist found");
-            var playlist = new Playlist(playlistInfo.PlaylistPtr);
+            var playlistInfo = playlistInfos.FirstOrDefault(info => info.TrackCount > 0);
+            if (playlistInfo == null)
+            {
+                _logger.WarnFormat("No playlists found with any tracks");
+                return;
+            }
 
-            Audio.SetPlaylist(playlist);
-            Audio.Play();
+            _logger.InfoFormat("Playing first playlist found");
+            var playlist = new Playlist(playlistInfo.PlaylistPtr, session);
+            currentPlaylist = playlist;
+            playlist.Play();
         }
 
-        public static List<PlaylistInfo> GetAllPlaylists()
+        public void PlayLastPlayingPlaylist()
+        {
+            var lastPlaylistName = Settings.Default.CurrentPlaylistName;
+            if (lastPlaylistName != string.Empty)
+            {
+                var foundPlaylistInfo = GetPlaylistInfo(lastPlaylistName);
+                if (foundPlaylistInfo != null)
+                {
+                    var lastPosition = Settings.Default.CurrentPlaylistPosition;
+
+                    var playlist = foundPlaylistInfo.GetPlaylist();
+                    currentPlaylist = playlist;
+                    playlist.SetPlaylistPosition(lastPosition);
+                    playlist.Play();
+                    return;
+                }
+            }
+
+            PlayDefaultPlaylist();
+        }
+
+        private PlaylistInfo GetPlaylistInfo(string playlistName)
+        {
+            var playlistInfos = GetAllPlaylists();
+            var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name.ToLower() == playlistName.ToLower());
+            return matchingPlaylistInfo;
+        }
+
+        public List<PlaylistInfo> GetAllPlaylists()
         {
             if (session.SessionPtr == IntPtr.Zero)
             {
@@ -61,34 +104,48 @@ namespace Spotbox.Player.Spotify
 
             if (playlistContainer == null)
             {
-                playlistContainer = new PlaylistContainer(libspotify.sp_session_playlistcontainer(session.SessionPtr));
+                playlistContainer = new PlaylistContainer(session);
                 _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
             }
             
             return playlistContainer.PlaylistInfos;
         }
 
-        public static void ShutDown()
+        public Track SearchForTrack(string trackSearch)
         {
-            lock (_syncObj)
+            searchCompleteDelegate = SearchComplete;
+            var searchPtr = libspotify.sp_search_create(session.SessionPtr, trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
+            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) == libspotify.sp_error.OK);
+
+            if (libspotify.sp_search_num_tracks(searchPtr) > 0)
             {
-                libspotify.sp_session_player_unload(session.SessionPtr);
-                libspotify.sp_session_logout(session.SessionPtr);
-    
-                playlistContainer = null;
-
-                if (_mainSignal != null)
-                {
-                    _mainSignal.Set();
-                }
-
-                _shutDown = true;
+                var track = new Track(libspotify.sp_search_track(searchPtr, 0), session);
+                return track;
             }
 
-            _programSignal.WaitOne(2000, false);
+            return null;
         }
 
-        private static void StartMainSpotifyThread()
+        public Playlist GetCurrentPlaylist()
+        {
+            return currentPlaylist;
+        }
+
+        public bool SetPlaylist(string playlistName)
+        {
+            var playlistInfo = GetPlaylistInfo(playlistName);            
+            if (playlistInfo != null)
+            {
+                var playlist = playlistInfo.GetPlaylist();
+                playlist.Play();
+                return true;
+            }
+
+            _logger.InfoFormat("No playlist found with name: {0}", playlistName);
+            return false;
+        }
+
+        private void StartMainSpotifyThread()
         {
             while (true)
             {
@@ -106,48 +163,14 @@ namespace Spotbox.Player.Spotify
             }
         }
 
-        public static void Session_OnLoggedIn(IntPtr obj)
-        {
-            _programSignal.Set();
-        }
-
-        public static void Session_OnNotifyMainThread(IntPtr sessionPtr)
-        {
-            _mainSignal.Set();
-        }
-
         private delegate void SearchCompleteDelegate(IntPtr searchPtr, IntPtr userDataPtr);
-        private static SearchCompleteDelegate searchCompleteDelegate;
 
-        private static PlaylistContainer playlistContainer;
+        private SearchCompleteDelegate searchCompleteDelegate;
 
-        private static Session session;
+        private Playlist currentPlaylist;
 
-        public static Track SearchForTrack(string trackSearch)
+        private static void SearchComplete(IntPtr searchPtr, IntPtr userDataPtr)
         {
-            searchCompleteDelegate = SearchComplete;
-            var searchPtr = libspotify.sp_search_create(session.SessionPtr, trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
-            Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) == libspotify.sp_error.OK);
-                
-            if (libspotify.sp_search_num_tracks(searchPtr) > 0)
-            {
-                var track = new Track(libspotify.sp_search_track(searchPtr, 0));
-                return track;
-            }
-
-            return null;
-        }
-
-        public static void SearchComplete(IntPtr searchPtr, IntPtr userDataPtr) {}
-
-        public static IntPtr GetSessionPtr()
-        {
-            return session.SessionPtr;
-        }
-
-        public static Session GetSession()
-        {
-            return session;
         }
     }
 }

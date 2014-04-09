@@ -30,5 +30,10 @@ namespace Spotbox.Player.Spotify
 
             return string.Empty;
         }
+
+        public static IntPtr GetFunctionPtr(this Delegate inputDelegate)
+        {
+            return Marshal.GetFunctionPointerForDelegate(inputDelegate);
+        }
     }
 }

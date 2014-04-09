@@ -11,11 +11,15 @@ namespace Spotbox.Player.Spotify
 {
     public class Playlist
     {
+        private readonly Session session;
+        private int currentPlaylistPosition;
+
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private IntPtr _callbacksPtr;
 
-        public Playlist(IntPtr playlistPtr)
+        public Playlist(IntPtr playlistPtr, Session session)
         {
+            this.session = session;
             if (playlistPtr == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Invalid playlist pointer.");
@@ -26,8 +30,9 @@ namespace Spotbox.Player.Spotify
 
             Wait.For(() => libspotify.sp_playlist_is_loaded(PlaylistPtr));
 
-            PlaylistInfo = new PlaylistInfo(playlistPtr);
+            PlaylistInfo = new PlaylistInfo(playlistPtr, session);
             LoadTracks();
+            currentPlaylistPosition = 0;
         }
 
         ~Playlist()
@@ -50,7 +55,7 @@ namespace Spotbox.Player.Spotify
             for (var i = 0; i < PlaylistInfo.TrackCount; i++)
             {
                 var trackPtr = libspotify.sp_playlist_track(PlaylistPtr, i);
-                Tracks.Add(new Track(trackPtr));
+                Tracks.Add(new Track(trackPtr, session));
             }                
         }
 
@@ -65,7 +70,49 @@ namespace Spotbox.Player.Spotify
             var size = Marshal.SizeOf(tracksPtr) * array.Length;
             tracksPtr = Marshal.AllocHGlobal(size);
             Marshal.Copy(array, 0, tracksPtr, array.Length);
-            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, PlaylistInfo.TrackCount, Spotify.GetSessionPtr());
+            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, PlaylistInfo.TrackCount, session.SessionPtr);
+        }
+
+        public void Play()
+        {
+            SavePlaylistPositionToSettings();
+            var track = Tracks[currentPlaylistPosition];
+            session.Play(track, PlayNextTrack);
+        }
+
+        public void Pause()
+        {
+            session.Pause();
+        }
+
+        public void PlayPreviousTrack()
+        {
+            currentPlaylistPosition--;
+            Play();
+        }
+
+        public void PlayNextTrack()
+        {
+            currentPlaylistPosition++;
+            Play();
+        }
+
+        public void SetPlaylistPosition(int position)
+        {
+            currentPlaylistPosition = position;
+            Play();
+        }
+
+        public Track GetCurrentTrack()
+        {
+            return Tracks[currentPlaylistPosition];
+        }
+
+        private void SavePlaylistPositionToSettings()
+        {
+            Settings.Default.CurrentPlaylistName = PlaylistInfo.Name;
+            Settings.Default.CurrentPlaylistPosition = currentPlaylistPosition;
+            Settings.Default.Save();
         }
 
         #region Callbacks
@@ -141,7 +188,7 @@ namespace Spotbox.Player.Spotify
         {
             foreach (var trackPtr in tracksPtr)
             {
-                var newTrack = new Track(trackPtr);
+                var newTrack = new Track(trackPtr, session);
                 Tracks.Insert(position, newTrack);
                 _logger.InfoFormat("Track sync added: {0}", newTrack.Name);
                 PlaylistInfo.TrackCount++;
@@ -182,7 +229,7 @@ namespace Spotbox.Player.Spotify
 
         private void PlaylistRenamed(IntPtr playlistPtr, IntPtr userDataPtr)
         {
-            PlaylistInfo = new PlaylistInfo(playlistPtr);
+            PlaylistInfo = new PlaylistInfo(playlistPtr, session);
         }
 
         private void StateChanged(IntPtr playlistPtr, IntPtr userDataPtr){ }
