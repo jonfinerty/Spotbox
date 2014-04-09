@@ -20,8 +20,13 @@ namespace Spotbox.Api
 
             Get["/playing/cover.jpeg"] = x =>
             {
-                var imageBytes = Audio.CurrentlyPlayingTrack.GetAlbumArt();
-                return new ByteArrayResponse(imageBytes, "image/jpeg");
+                if (Audio.CurrentlyPlayingTrack != null)
+                {
+                    var imageBytes = Audio.CurrentlyPlayingTrack.GetAlbumArt();
+                    return new ByteArrayResponse(imageBytes, "image/jpeg");
+                }
+
+                return new ByteArrayResponse(new byte[0], "image/jpeg");
             };
         }
 

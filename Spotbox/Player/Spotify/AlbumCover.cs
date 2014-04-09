@@ -7,12 +7,30 @@ namespace Spotbox.Player.Spotify
 {
     public class AlbumCover 
     {
+        public byte[] ImageBytes { get; private set; }
+
         public AlbumCover(IntPtr albumPtr)
         {
             var coverPtr = libspotify.sp_album_cover(albumPtr, libspotify.sp_image_size.SP_IMAGE_SIZE_LARGE);
             var ptr = libspotify.sp_image_create(Spotify.GetSessionPtr(), coverPtr);
-            ImagePtr = ptr;            
-            Wait.For(() => libspotify.sp_image_is_loaded(ImagePtr));
+            ImagePtr = ptr;
+
+            // sp_image_loaded seems to always be returning true, check for bytes returned
+            Wait.For(LoadImageBytes);
+        }
+
+        private bool LoadImageBytes()
+        {
+            int bufferSize;
+            var imageDataBufferPtr = libspotify.sp_image_data(ImagePtr, out bufferSize);
+            if (bufferSize > 0)
+            {
+                ImageBytes = new byte[bufferSize];
+                Marshal.Copy(imageDataBufferPtr, ImageBytes, 0, ImageBytes.Length);
+                return true;
+            }
+
+            return false;
         }
 
         ~AlbumCover()
@@ -21,15 +39,5 @@ namespace Spotbox.Player.Spotify
         }
 
         public IntPtr ImagePtr { get; private set; }
-
-        public byte[] GetImageBytes()
-        {
-            int bufferSize;
-            var imageDataBufferPtr = libspotify.sp_image_data(ImagePtr, out bufferSize);
-            var buffer = new byte[bufferSize];
-            Marshal.Copy(imageDataBufferPtr, buffer, 0, buffer.Length);
-
-            return buffer;
-        }
     }
 }

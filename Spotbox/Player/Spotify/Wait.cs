@@ -7,7 +7,7 @@ namespace Spotbox.Player.Spotify
     {        
         public static bool For(Func<bool> isFinishedTest)
         {
-            const int DefaultTimeoutInSeconds = 10;
+            const int DefaultTimeoutInSeconds = 25;
 
             var start = DateTime.Now;
 

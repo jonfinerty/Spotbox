@@ -32,7 +32,7 @@ namespace Spotbox.Player.Spotify
         public byte[] GetAlbumArt()
         {
             var cover = new AlbumCover(AlbumPtr);
-            return cover.GetImageBytes();
+            return cover.ImageBytes;
         }
 
         private void SetTrackMetaData()
