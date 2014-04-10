@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using libspotifydotnet;
 using log4net;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
     public class Spotify
     {
@@ -22,7 +22,7 @@ namespace Spotbox.Spotify
 
         public Spotify(byte[] appkey, string username, string password)
         {
-            session = new Session(appkey);
+            session = new Session(this, appkey);
 
             new Task(StartMainSpotifyThread).Start();
 
@@ -39,15 +39,11 @@ namespace Spotbox.Spotify
             _shutDown = true;
         }
 
-        public IntPtr GetSessionPtr()
-        {
-            return session.SessionPtr;
-        }
+        public TrackChangedDelegate TrackChanged;
 
-        public Session GetSession()
-        {
-            return session;
-        }
+        public delegate void TrackChangedDelegate(Track newTrack);
+
+        public Playlist.PlaylistChangedDelegate PlaylistChanged;
 
         public void PlayDefaultPlaylist()
         {
@@ -61,32 +57,11 @@ namespace Spotbox.Spotify
 
             _logger.InfoFormat("Playing first playlist found");
             var playlist = new Playlist(playlistInfo.PlaylistPtr, session);
-            currentPlaylist = playlist;
+            SetCurrentPlaylist(playlist);
             playlist.Play();
         }
 
-        public void PlayLastPlayingPlaylist()
-        {
-            var lastPlaylistName = Settings.Default.CurrentPlaylistName;
-            if (lastPlaylistName != string.Empty)
-            {
-                var foundPlaylistInfo = GetPlaylistInfo(lastPlaylistName);
-                if (foundPlaylistInfo != null)
-                {
-                    var lastPosition = Settings.Default.CurrentPlaylistPosition;
-
-                    var playlist = foundPlaylistInfo.GetPlaylist();
-                    currentPlaylist = playlist;
-                    playlist.SetPlaylistPosition(lastPosition < playlist.Tracks.Count ? lastPosition : 0);
-
-                    return;
-                }
-            }
-
-            PlayDefaultPlaylist();
-        }
-
-        private PlaylistInfo GetPlaylistInfo(string playlistName)
+        public PlaylistInfo GetPlaylistInfo(string playlistName)
         {
             var playlistInfos = GetAllPlaylists();
             var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name.ToLower() == playlistName.ToLower());
@@ -129,18 +104,15 @@ namespace Spotbox.Spotify
             return currentPlaylist;
         }
 
-        public bool SetPlaylist(string playlistName)
+        public void SetCurrentPlaylist(Playlist playlist)
         {
-            var playlistInfo = GetPlaylistInfo(playlistName);            
-            if (playlistInfo != null)
+            if (currentPlaylist != null)
             {
-                var playlist = playlistInfo.GetPlaylist();
-                playlist.Play();
-                return true;
+                currentPlaylist.playlistChanged = null;
             }
 
-            _logger.InfoFormat("No playlist found with name: {0}", playlistName);
-            return false;
+            currentPlaylist = playlist;
+            currentPlaylist.playlistChanged = PlaylistChanged;
         }
 
         private void StartMainSpotifyThread()
@@ -169,6 +141,57 @@ namespace Spotbox.Spotify
 
         private static void SearchComplete(IntPtr searchPtr, IntPtr userDataPtr)
         {
+        }
+
+        public void Play()
+        {
+            if (currentPlaylist != null)
+            {
+                currentPlaylist.Play();
+            }
+        }
+
+        public void Unpause()
+        {
+            session.Unpause();
+        }
+
+        public void Pause()
+        {
+            session.Pause();
+        }
+
+        public void SetCurrentPlaylistPosition(int lastPosition)
+        {
+            if (currentPlaylist != null)
+            {
+                currentPlaylist.CurrentPosition = lastPosition;
+            }
+        }
+
+        public void PlayNextTrack()
+        {
+            if (currentPlaylist != null)
+            {
+                currentPlaylist.PlayNextTrack();
+            }
+        }
+
+        public void PlayPreviousTrack()
+        {
+            if (currentPlaylist != null)
+            {
+                currentPlaylist.PlayPreviousTrack();
+            }
+        }
+
+        public Track GetCurrentTrack()
+        {
+            if (currentPlaylist != null)
+            {
+                return currentPlaylist.GetCurrentTrack();
+            }
+            return null;
         }
     }
 }

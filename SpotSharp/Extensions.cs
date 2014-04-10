@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
-    static class Extensions
+    internal static class Extensions
     {
         public static string PtrToString(this IntPtr ptr)
         {

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Threading;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
-    public class Wait
+    internal class Wait
     {        
         public static bool For(Func<bool> isFinishedTest)
         {

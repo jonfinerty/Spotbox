@@ -2,16 +2,17 @@
 using Nancy;
 using Nancy.ModelBinding;
 using Spotbox.Api.Models;
+using SpotSharp;
 
 namespace Spotbox.Api
 {
     public class Speak : NancyModule
     {
-        public Speak(Spotify.Spotify spotify)
+        public Speak(Spotify spotify)
         {
             Post["/speak"] = x =>
             {
-                spotify.GetCurrentPlaylist().Pause();
+                spotify.Pause();
                 var speach = this.Bind<SimpleInput>();
                 var synthesizer = new SpeechSynthesizer
                 {
@@ -20,7 +21,7 @@ namespace Spotbox.Api
                 };
                 
                 synthesizer.Speak(speach.Value);
-                spotify.GetCurrentPlaylist().Play();
+                spotify.Play();
                 return HttpStatusCode.OK;
             };
         }

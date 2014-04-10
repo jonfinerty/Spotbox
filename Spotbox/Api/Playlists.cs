@@ -1,11 +1,12 @@
 ﻿using Nancy;
 using Newtonsoft.Json;
+using SpotSharp;
 
 namespace Spotbox.Api
 {
     public class Playlists : NancyModule
     {
-        public Playlists(Spotify.Spotify spotify)
+        public Playlists(Spotify spotify)
         {
             Get["/playlists"] = x =>
             {

@@ -2,9 +2,9 @@
 using System.Linq;
 using NAudio.Wave;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
-    public class HaltableBufferedWaveProvider : IWaveProvider
+    internal class HaltableBufferedWaveProvider : IWaveProvider
     {
         private readonly BufferedWaveProvider _bufferedWaveProvider;
 

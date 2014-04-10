@@ -4,19 +4,44 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using log4net;
-using Newtonsoft.Json;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
     public class Playlist
     {
         private readonly Session session;
-        private int currentPlaylistPosition;
+
+        private int _currentPosition;
+
+        public int CurrentPosition
+        {
+            get
+            {
+                return _currentPosition;
+            }
+
+            internal set
+            {
+                if (value >= 0 && value < Tracks.Count)
+                {
+                    _currentPosition = value;
+
+                    if (playlistChanged != null)
+                    {
+                        playlistChanged(this);
+                    }
+                }
+            }
+        }
 
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private IntPtr _callbacksPtr;
 
-        public Playlist(IntPtr playlistPtr, Session session)
+        internal PlaylistChangedDelegate playlistChanged;
+
+        public delegate void PlaylistChangedDelegate(Playlist playlist);
+
+        internal Playlist(IntPtr playlistPtr, Session session)
         {
             this.session = session;
             if (playlistPtr == IntPtr.Zero)
@@ -29,9 +54,9 @@ namespace Spotbox.Spotify
 
             Wait.For(() => libspotify.sp_playlist_is_loaded(PlaylistPtr));
 
-            PlaylistInfo = new PlaylistInfo(playlistPtr, session);
+            Metadata = new PlaylistInfo(playlistPtr, session);
             LoadTracks();
-            currentPlaylistPosition = 0;
+            CurrentPosition = 0;
         }
 
         ~Playlist()
@@ -39,28 +64,27 @@ namespace Spotbox.Spotify
             libspotify.sp_playlist_remove_callbacks(PlaylistPtr, _callbacksPtr, IntPtr.Zero);
             libspotify.sp_playlist_release(PlaylistPtr);
         }
+        
+        internal IntPtr PlaylistPtr { get; private set; }
 
-        [JsonIgnore]
-        public IntPtr PlaylistPtr { get; private set; }
-
-        public PlaylistInfo PlaylistInfo { get; private set; }
+        public PlaylistInfo Metadata { get; private set; }
 
         public List<Track> Tracks { get; private set; }
 
-        public void LoadTracks()
+        private void LoadTracks()
         {
             Tracks = new List<Track>();
 
-            for (var i = 0; i < PlaylistInfo.TrackCount; i++)
+            for (var i = 0; i < Metadata.TrackCount; i++)
             {
                 var trackPtr = libspotify.sp_playlist_track(PlaylistPtr, i);
                 Tracks.Add(new Track(trackPtr, session));
-            }                
+            }
         }
 
         public void AddTrack(Track track)
         {
-            _logger.InfoFormat("Adding track: {0} to playlist: {1}", track.Name, PlaylistInfo.Name);
+            _logger.InfoFormat("Adding track: {0} to playlist: {1}", track.Name, Metadata.Name);
             var tracksPtr = IntPtr.Zero;
             
             var array = new int[1];
@@ -69,63 +93,30 @@ namespace Spotbox.Spotify
             var size = Marshal.SizeOf(tracksPtr) * array.Length;
             tracksPtr = Marshal.AllocHGlobal(size);
             Marshal.Copy(array, 0, tracksPtr, array.Length);
-            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, PlaylistInfo.TrackCount, session.SessionPtr);
+            libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, Metadata.TrackCount, session.SessionPtr);
         }
 
-        public void Play()
+        internal void Play()
         {
-            SavePlaylistPositionToSettings();
-            var track = Tracks[currentPlaylistPosition];
+            var track = Tracks[CurrentPosition];
             session.Play(track, PlayNextTrack);
         }
 
-        public void Unpause()
+        internal void PlayPreviousTrack()
         {
-            session.Unpause();
+            CurrentPosition--;
+            Play();
         }
 
-        public void Pause()
+        internal void PlayNextTrack()
         {
-            session.Pause();
+            CurrentPosition++;
+            Play();
         }
 
-        public void PlayPreviousTrack()
+        internal Track GetCurrentTrack()
         {
-            if (currentPlaylistPosition > 0)
-            {
-                currentPlaylistPosition--;
-                Play();
-            }
-        }
-
-        public void PlayNextTrack()
-        {
-            if (currentPlaylistPosition < Tracks.Count - 1)
-            {
-                currentPlaylistPosition++;
-                Play();
-            }
-        }
-
-        public void SetPlaylistPosition(int position)
-        {
-            if (position >= 0 && position < Tracks.Count)
-            {
-                currentPlaylistPosition = position;
-                Play();
-            }
-        }
-
-        public Track GetCurrentTrack()
-        {
-            return Tracks[currentPlaylistPosition];
-        }
-
-        private void SavePlaylistPositionToSettings()
-        {
-            Settings.Default.CurrentPlaylistName = PlaylistInfo.Name;
-            Settings.Default.CurrentPlaylistPosition = currentPlaylistPosition;
-            Settings.Default.Save();
+            return Tracks[CurrentPosition];
         }
 
         #region Callbacks
@@ -191,7 +182,7 @@ namespace Spotbox.Spotify
                 subscribers_changed = Marshal.GetFunctionPointerForDelegate(_subscribersChangedDelegate)
             };
 
-            _callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(callbacks));
+            _callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf((object) callbacks));
             Marshal.StructureToPtr(callbacks, _callbacksPtr, true);
 
             libspotify.sp_playlist_add_callbacks(PlaylistPtr, _callbacksPtr, IntPtr.Zero);
@@ -205,8 +196,15 @@ namespace Spotbox.Spotify
 
                 Tracks.Insert(position, newTrack);
                 _logger.InfoFormat("Track sync added: {0}", newTrack.Name);
-                PlaylistInfo.TrackCount++;
+
+                if (position <= CurrentPosition)
+                {
+                    CurrentPosition++;
+                }
+
+                Metadata.TrackCount++;
                 position++;
+
             }
         }
 
@@ -219,7 +217,34 @@ namespace Spotbox.Spotify
                 {
                     _logger.InfoFormat("Track sync removed: {0}", Tracks[trackIndex].Name);
                     Tracks.RemoveAt(trackIndex);
-                    PlaylistInfo.TrackCount--;
+                    Metadata.TrackCount--;
+                    
+                    if (CurrentPosition >= Metadata.TrackCount)
+                    {
+                        //was playing track at end which is now
+                        CurrentPosition = Metadata.TrackCount - 1;
+                        session.Pause();
+                    }
+                    else if (trackIndex <= CurrentPosition && CurrentPosition < trackIndex+trackCount)
+                    {
+                        _logger.InfoFormat("Currently playing track removed");
+                        // both tracks before, and the current track have been removed
+                        CurrentPosition = CurrentPosition - (trackCount - 1);
+                        if (CurrentPosition >= Metadata.TrackCount)
+                        {
+                            CurrentPosition = Metadata.TrackCount - 1;
+                            session.Pause();
+                        }
+                        else
+                        {
+                            Play();
+                        }
+                    }
+                    else if (trackIndex <= CurrentPosition)
+                    {
+                        // just tracks before removed
+                        CurrentPosition = CurrentPosition - trackCount;
+                    }
                 }
             }
         }
@@ -230,6 +255,18 @@ namespace Spotbox.Spotify
             foreach (var trackPtr in tracksPtr)
             {
                 var tracksIndex = (int)trackPtr;
+
+                // move currently playing pointer
+                if (tracksIndex <= CurrentPosition && CurrentPosition < tracksIndex + trackCount)
+                {
+                    CurrentPosition = (CurrentPosition - tracksIndex) + newPosition;
+                }
+                else if (tracksIndex < CurrentPosition)
+                {
+                    CurrentPosition = CurrentPosition - trackCount;
+                }
+
+                // move tracks
                 var movingTracks = Tracks.GetRange(tracksIndex, trackCount);
                 Tracks.RemoveRange(tracksIndex, trackCount);
                 if (newPosition > tracksIndex)
@@ -243,7 +280,7 @@ namespace Spotbox.Spotify
 
         private void PlaylistRenamed(IntPtr playlistPtr, IntPtr userDataPtr)
         {
-            PlaylistInfo = new PlaylistInfo(playlistPtr, session);
+            Metadata = new PlaylistInfo(playlistPtr, session);
         }
 
         private void StateChanged(IntPtr playlistPtr, IntPtr userDataPtr){ }

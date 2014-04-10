@@ -4,12 +4,13 @@ using Nancy.ModelBinding;
 using Newtonsoft.Json;
 
 using Spotbox.Api.Models;
+using SpotSharp;
 
 namespace Spotbox.Api
 {
     public class Playlist : NancyModule
     {
-        public Playlist(Spotify.Spotify spotify)
+        public Playlist(Spotify spotify)
         {
             Get["/playlist"] = x =>
             {
@@ -38,8 +39,16 @@ namespace Spotbox.Api
             Put["/playlist"] = x =>
             {
                 var playlistName = this.Bind<SimpleInput>();
-                var found = spotify.SetPlaylist(playlistName.Value);
-                return found ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
+                var playlistInfo = spotify.GetPlaylistInfo(playlistName.Value);
+                
+                if (playlistInfo != null)
+                {
+                    spotify.SetCurrentPlaylist(playlistInfo.GetPlaylist());
+                    spotify.Play();
+                    return HttpStatusCode.OK;
+                }
+
+                return HttpStatusCode.BadRequest;
             };
         }
     }

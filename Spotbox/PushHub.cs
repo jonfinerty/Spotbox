@@ -3,6 +3,7 @@
 using Nancy.TinyIoc;
 
 using Newtonsoft.Json;
+using SpotSharp;
 
 namespace Spotbox
 {
@@ -10,8 +11,8 @@ namespace Spotbox
     {
         public void RequestTrack()
         {
-            var spotify = TinyIoCContainer.Current.Resolve<Spotify.Spotify>();
-            var track = spotify.GetCurrentPlaylist().GetCurrentTrack();
+            var spotify = TinyIoCContainer.Current.Resolve<Spotify>();
+            var track = spotify.GetCurrentTrack();
             Clients.Caller.newTrack(JsonConvert.SerializeObject(track));
         }
     }

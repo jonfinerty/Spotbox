@@ -4,14 +4,13 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using log4net;
-using Microsoft.AspNet.SignalR;
 using NAudio.Wave;
-using Newtonsoft.Json;
 
-namespace Spotbox.Spotify 
+namespace SpotSharp 
 {
-    public class Session 
+    internal class Session 
     {
+        private readonly Spotify _spotify;
         public IntPtr SessionPtr;
 
         const int _sampleRate = 44100;
@@ -30,8 +29,9 @@ namespace Spotbox.Spotify
 
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        public Session(byte[] appkey)
+        public Session(Spotify spotify, byte[] appkey)
         {
+            _spotify = spotify;
             _waveOutDevice = new WaveOutEvent { DesiredLatency = 200 };
 
             playbackStoppedHandler = (sender, args) =>
@@ -133,8 +133,13 @@ namespace Spotbox.Spotify
 
             endOfTrackCallback = endOfTrackCallbackDelegate;
 
+
             _logger.InfoFormat("Playing track: {0} - {1}", track.Name, string.Join(",", track.Artists));
-            BroadcastTrackChange(track);
+            
+            if (_spotify.TrackChanged != null)
+            {
+                _spotify.TrackChanged(track);
+            }
 
             _waveOutDevice = new WaveOutEvent {DesiredLatency = 200};
             _waveProvider.ClearBuffer();
@@ -150,12 +155,6 @@ namespace Spotbox.Spotify
             }
 
             _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
-        }
-
-        private void BroadcastTrackChange(Track track)
-        {
-            var hubContext = GlobalHost.ConnectionManager.GetHubContext<PushHub>();
-            hubContext.Clients.All.newTrack(JsonConvert.SerializeObject(track));
         }
 
         private void StartLoadingTrackAudio(IntPtr trackPtr)
@@ -267,7 +266,7 @@ namespace Spotbox.Spotify
                                 userinfo_updated = userinfoUpdatedDelegate.GetFunctionPtr()
                             };
 
-            var callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(callbacks));
+            var callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf((object) callbacks));
             Marshal.StructureToPtr(callbacks, callbacksPtr, true);
 
             return callbacksPtr;

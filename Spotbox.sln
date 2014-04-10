@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spotbox", "Spotbox\Spotbox.csproj", "{150E7D89-C3DA-4EFA-82E4-1FA95A24538F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{12FF0A2F-E2B8-4414-A96C-487210E9FD84}"
@@ -9,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{12FF0A
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotSharp", "SpotSharp\SpotSharp.csproj", "{08A36564-FE12-449F-92D9-42EE27EA68AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +24,10 @@ Global
 		{150E7D89-C3DA-4EFA-82E4-1FA95A24538F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{150E7D89-C3DA-4EFA-82E4-1FA95A24538F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{150E7D89-C3DA-4EFA-82E4-1FA95A24538F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -3,32 +3,29 @@ using System.Collections.Generic;
 using System.Reflection;
 using libspotifydotnet;
 using log4net;
-using Newtonsoft.Json;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
     public class Track
     {
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly Session session;
 
-        public Track(IntPtr trackPtr, Session session)
+        internal Track(IntPtr trackPtr, Session session)
         {
             this.session = session;
             TrackPtr = trackPtr;
             Wait.For(IsLoaded);
             SetTrackMetaData();
         }
-
-        [JsonIgnore]
-        public IntPtr TrackPtr { get; private set; }
+        
+        internal IntPtr TrackPtr { get; private set; }
 
         public string Name { get; private set; }
 
         public int Length { get; private set; }
 
-        [JsonIgnore]
-        public IntPtr AlbumPtr { get; private set; }
+        internal IntPtr AlbumPtr { get; private set; }
 
         public List<string> Artists { get; private set; }
 
@@ -40,7 +37,7 @@ namespace Spotbox.Spotify
 
         private void SetTrackMetaData()
         {
-            Name = libspotify.sp_track_name(TrackPtr).PtrToString();
+            Name = Extensions.PtrToString(libspotify.sp_track_name(TrackPtr));
             Length = (int)(libspotify.sp_track_duration(TrackPtr) / 1000M);
 
             AlbumPtr = libspotify.sp_track_album(TrackPtr);
@@ -52,7 +49,7 @@ namespace Spotbox.Spotify
                 var artistPtr = libspotify.sp_track_artist(TrackPtr, i);
                 if (artistPtr != IntPtr.Zero)
                 {
-                    Artists.Add(libspotify.sp_artist_name(artistPtr).PtrToString());
+                    Artists.Add(Extensions.PtrToString(libspotify.sp_artist_name(artistPtr)));
                 }
             }
         }

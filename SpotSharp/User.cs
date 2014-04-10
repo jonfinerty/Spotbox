@@ -1,7 +1,7 @@
 ﻿using System;
 using libspotifydotnet;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
     public class User
     {
@@ -12,7 +12,7 @@ namespace Spotbox.Spotify
             SetUserData(userPtr);
         }
 
-        public IntPtr UserPtr { get; private set; }
+        internal IntPtr UserPtr { get; private set; }
 
         public string CanonicalName { get; private set; }
 
@@ -23,8 +23,8 @@ namespace Spotbox.Spotify
 
         private void SetUserData(IntPtr userPtr)
         {
-            CanonicalName = libspotify.sp_user_canonical_name(userPtr).PtrToString();
-            DisplayName = libspotify.sp_user_display_name(userPtr).PtrToString();
+            CanonicalName = Extensions.PtrToString(libspotify.sp_user_canonical_name(userPtr));
+            DisplayName = Extensions.PtrToString(libspotify.sp_user_display_name(userPtr));
         }
     }
 }

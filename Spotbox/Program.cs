@@ -5,6 +5,7 @@ using Microsoft.Owin.Hosting;
 
 using Nancy.TinyIoc;
 using log4net;
+using SpotSharp;
 
 namespace Spotbox
 {
@@ -25,11 +26,34 @@ namespace Spotbox
             {
                 _logger.InfoFormat("Hosting Spotbox at: {0}", hostUri);
 
-                var spotify = TinyIoCContainer.Current.Resolve<Spotify.Spotify>();
-                spotify.PlayLastPlayingPlaylist();
+                PlayLastPlayingPlaylist();
 
                 Console.ReadLine();
             }
+        }
+
+
+        public static void PlayLastPlayingPlaylist()
+        {
+            var spotify = TinyIoCContainer.Current.Resolve<Spotify>();
+
+            var lastPlaylistName = Settings.Default.CurrentPlaylistName;
+            if (lastPlaylistName != string.Empty)
+            {
+                var foundPlaylistInfo = spotify.GetPlaylistInfo(lastPlaylistName);
+                if (foundPlaylistInfo != null)
+                {
+                    var lastPosition = Settings.Default.CurrentPlaylistPosition;
+
+                    var playlist = foundPlaylistInfo.GetPlaylist();
+                    spotify.SetCurrentPlaylist(playlist);
+                    spotify.SetCurrentPlaylistPosition(lastPosition);
+                    spotify.Play();
+                    return;
+                }
+            }
+
+            spotify.PlayDefaultPlaylist();
         }
     }
 }

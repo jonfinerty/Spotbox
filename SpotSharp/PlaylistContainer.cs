@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using libspotifydotnet;
 using log4net;
 
-namespace Spotbox.Spotify
+namespace SpotSharp
 {
     public class PlaylistContainer
     {
@@ -15,7 +15,7 @@ namespace Spotbox.Spotify
 
         private IntPtr _callbacksPtr;
 
-        public PlaylistContainer(Session session)
+        internal PlaylistContainer(Session session)
         {
             this.session = session;
 
@@ -31,7 +31,7 @@ namespace Spotbox.Spotify
             libspotify.sp_playlistcontainer_remove_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
         }
 
-        public IntPtr PlaylistContainerPtr { get; private set; }
+        internal IntPtr PlaylistContainerPtr { get; private set; }
 
         public List<PlaylistInfo> PlaylistInfos { get; private set; }
 
@@ -82,7 +82,7 @@ namespace Spotbox.Spotify
                 playlist_removed = Marshal.GetFunctionPointerForDelegate(_playlistRemovedDelegate)
             };
 
-            _callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf(playlistcontainerCallbacks));
+            _callbacksPtr = Marshal.AllocHGlobal(Marshal.SizeOf((object) playlistcontainerCallbacks));
             Marshal.StructureToPtr(playlistcontainerCallbacks, _callbacksPtr, true);
             libspotify.sp_playlistcontainer_add_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
         }

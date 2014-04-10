@@ -2,17 +2,18 @@
 using System.IO;
 using System.Reflection;
 using log4net;
-
+using Microsoft.AspNet.SignalR;
 using Microsoft.Owin;
 using Microsoft.Owin.Cors;
 
 using Nancy;
 using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
-
+using Newtonsoft.Json;
 using Owin;
 
 using Spotbox;
+using SpotSharp;
 
 [assembly: OwinStartup(typeof(Startup))]
 
@@ -35,7 +36,7 @@ namespace Spotbox
 
     public class CustomBootstrapper : DefaultNancyBootstrapper
     {
-        private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
@@ -43,7 +44,10 @@ namespace Spotbox
             var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
             var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
 
-            var spotify = new Spotify.Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
+            var spotify = new Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
+
+            spotify.TrackChanged = BroadcastTrackChange;
+            spotify.PlaylistChanged = SavePlaylistPositionToSettings;
 
             // for api modules
             container.Register(spotify);
@@ -57,5 +61,19 @@ namespace Spotbox
                 return null;
             };
         }
+
+        private void BroadcastTrackChange(Track track)
+        {
+            var hubContext = GlobalHost.ConnectionManager.GetHubContext<PushHub>();
+            hubContext.Clients.All.newTrack(JsonConvert.SerializeObject(track));
+        }
+
+        private void SavePlaylistPositionToSettings(Playlist playlist)
+        {
+            Settings.Default.CurrentPlaylistName = playlist.Metadata.Name;
+            Settings.Default.CurrentPlaylistPosition = playlist.CurrentPosition;
+            Settings.Default.Save();
+        }
+
     }
 }

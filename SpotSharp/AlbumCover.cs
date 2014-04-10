@@ -2,13 +2,13 @@
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 
-namespace Spotbox.Spotify 
+namespace SpotSharp 
 {
     public class AlbumCover 
     {
         public byte[] ImageBytes { get; private set; }
 
-        public AlbumCover(IntPtr albumPtr, Session session)
+        internal AlbumCover(IntPtr albumPtr, Session session)
         {
             var coverPtr = libspotify.sp_album_cover(albumPtr, libspotify.sp_image_size.SP_IMAGE_SIZE_LARGE);
             var ptr = libspotify.sp_image_create(session.SessionPtr, coverPtr);
@@ -37,6 +37,6 @@ namespace Spotbox.Spotify
             libspotify.sp_image_release(ImagePtr);
         }
 
-        public IntPtr ImagePtr { get; private set; }
+        internal IntPtr ImagePtr { get; private set; }
     }
 }
