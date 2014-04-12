@@ -23,8 +23,8 @@ namespace SpotSharp
 
         private void SetUserData(IntPtr userPtr)
         {
-            CanonicalName = Extensions.PtrToString(libspotify.sp_user_canonical_name(userPtr));
-            DisplayName = Extensions.PtrToString(libspotify.sp_user_display_name(userPtr));
+            CanonicalName = libspotify.sp_user_canonical_name(userPtr).PtrToString();
+            DisplayName = libspotify.sp_user_display_name(userPtr).PtrToString();
         }
     }
 }

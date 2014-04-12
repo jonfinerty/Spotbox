@@ -29,6 +29,8 @@ namespace SpotSharp
 
         public List<string> Artists { get; private set; }
 
+        public Link Link { get; private set; }
+
         public byte[] GetAlbumArt()
         {
             var cover = new AlbumCover(AlbumPtr, session);
@@ -37,7 +39,7 @@ namespace SpotSharp
 
         private void SetTrackMetaData()
         {
-            Name = Extensions.PtrToString(libspotify.sp_track_name(TrackPtr));
+            Name = libspotify.sp_track_name(TrackPtr).PtrToString();
             Length = (int)(libspotify.sp_track_duration(TrackPtr) / 1000M);
 
             AlbumPtr = libspotify.sp_track_album(TrackPtr);
@@ -49,10 +51,12 @@ namespace SpotSharp
                 var artistPtr = libspotify.sp_track_artist(TrackPtr, i);
                 if (artistPtr != IntPtr.Zero)
                 {
-                    Artists.Add(Extensions.PtrToString(libspotify.sp_artist_name(artistPtr)));
+                    Artists.Add(libspotify.sp_artist_name(artistPtr).PtrToString());
                 }
             }
-        }
+
+            Link = new Link(TrackPtr, LinkType.Track);
+        }        
 
         private bool IsLoaded()
         {
