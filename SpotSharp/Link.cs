@@ -12,19 +12,20 @@ namespace SpotSharp
         Artist = 2,
         Search = 3,
         Playlist = 4,
-        Profile = 5,
-        Starred = 6,
-        Localtrack = 7,
-        Image = 8,
-        AlbumCover = 9,
+        AlbumCover = 5,
+        User = 6
     }
 
     public class Link
     {
         internal IntPtr LinkPtr;
 
+        public LinkType LinkType { get; private set; }
+
         internal Link(IntPtr objectPtr, LinkType linkType)
         {
+            LinkType = linkType;
+
             switch (linkType)
             {
                 case LinkType.Track:
@@ -32,9 +33,34 @@ namespace SpotSharp
                     LinkPtr = libspotify.sp_link_create_from_track(objectPtr, 0);
                     break;
                 }
-                case LinkType.AlbumCover :
+                case LinkType.Album:
+                {
+                    LinkPtr = libspotify.sp_link_create_from_album(objectPtr);
+                    break;
+                }
+                case LinkType.Artist:
+                {
+                    LinkPtr = libspotify.sp_link_create_from_artist(objectPtr);
+                    break;
+                }
+                case LinkType.Search:
+                {
+                    LinkPtr = libspotify.sp_link_create_from_search(objectPtr);
+                    break;
+                }
+                case LinkType.User:
+                {
+                    LinkPtr = libspotify.sp_link_create_from_user(objectPtr);
+                    break;
+                }
+                case LinkType.AlbumCover:
                 {
                     LinkPtr = libspotify.sp_link_create_from_album_cover(objectPtr);
+                    break;
+                }
+                case LinkType.Playlist:
+                {
+                    LinkPtr = libspotify.sp_link_create_from_playlist(objectPtr);
                     break;
                 }
             }
@@ -43,6 +69,45 @@ namespace SpotSharp
         public Link(string link)
         {
             LinkPtr = libspotify.sp_link_create_from_string(link);
+            var spotLinkType = libspotify.sp_link_type(LinkPtr);
+            switch (spotLinkType)
+            {
+                case libspotify.sp_linktype.SP_LINKTYPE_ALBUM:
+                {
+                    LinkType = LinkType.Album;
+                    break;
+                }
+                case libspotify.sp_linktype.SP_LINKTYPE_IMAGE:
+                {
+                    LinkType = LinkType.AlbumCover;
+                    break;
+                }
+                case libspotify.sp_linktype.SP_LINKTYPE_ARTIST:
+                {
+                    LinkType = LinkType.Artist;
+                    break;
+                }
+                case libspotify.sp_linktype.SP_LINKTYPE_PLAYLIST:
+                {
+                    LinkType = LinkType.Playlist;
+                    break;
+                }
+                case libspotify.sp_linktype.SP_LINKTYPE_SEARCH:
+                {
+                    LinkType = LinkType.Search;
+                    break;
+                }
+                case libspotify.sp_linktype.SP_LINKTYPE_TRACK:
+                {
+                    LinkType = LinkType.Track;
+                    break;
+                }
+                case libspotify.sp_linktype.SP_LINKTYPE_PROFILE:
+                {
+                    LinkType = LinkType.User;
+                    break;
+                }
+            }
         }
 
         public override string ToString()

@@ -20,6 +20,8 @@ namespace SpotSharp
         
         public libspotify.sp_playlist_offline_status OfflineStatus { get; private set; }
 
+        public Link Link { get; private set; }
+
         internal PlaylistInfo(IntPtr playlistPtr, Session session)
         {
             this.session = session;
@@ -39,6 +41,7 @@ namespace SpotSharp
             SubscriberCount = (int) libspotify.sp_playlist_num_subscribers(PlaylistPtr);
             IsInRam = libspotify.sp_playlist_is_in_ram(session.SessionPtr, PlaylistPtr);
             OfflineStatus = libspotify.sp_playlist_get_offline_status(session.SessionPtr, PlaylistPtr);
+            Link = new Link(PlaylistPtr, LinkType.Playlist);
         }
 
         public Playlist GetPlaylist()

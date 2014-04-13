@@ -57,7 +57,10 @@ namespace SpotSharp
             Metadata = new PlaylistInfo(playlistPtr, session);
             LoadTracks();
             CurrentPosition = 0;
+            Link = new Link(PlaylistPtr, LinkType.Playlist);
         }
+
+        public Link Link { get; private set; }
 
         ~Playlist()
         {

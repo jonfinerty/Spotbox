@@ -18,13 +18,15 @@ namespace SpotSharp
 
         public string DisplayName { get; private set; }
 
-        public string FullName { get; private set; }        
+        public string FullName { get; private set; }
 
+        public Link Link { get; private set; }
 
         private void SetUserData(IntPtr userPtr)
         {
             CanonicalName = libspotify.sp_user_canonical_name(userPtr).PtrToString();
             DisplayName = libspotify.sp_user_display_name(userPtr).PtrToString();
+            Link = new Link(UserPtr, LinkType.User);
         }
     }
 }

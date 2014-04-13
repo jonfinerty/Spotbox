@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.IO;
 using System.Reflection;
 using log4net;
@@ -10,6 +11,7 @@ using Nancy;
 using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Owin;
 
 using Spotbox;
@@ -53,7 +55,7 @@ namespace Spotbox
             container.Register(spotify);
 
             // for application startup
-            TinyIoCContainer.Current.Register(spotify);
+            TinyIoCContainer.Current.Register(spotify);            
 
             pipelines.BeforeRequest += (ctx) =>
             {
@@ -75,5 +77,24 @@ namespace Spotbox
             Settings.Default.Save();
         }
 
+    }
+
+    public class LinkJsonConverter : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var link = (Link) value;
+            writer.WriteValue(link.ToString());
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return (objectType == typeof (Link));
+        }
     }
 }

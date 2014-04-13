@@ -15,7 +15,7 @@ namespace Spotbox.Api
             Get["/playlist"] = x =>
             {
                 var playlist = spotify.GetCurrentPlaylist();
-                var response = (Response)JsonConvert.SerializeObject(playlist);
+                var response = (Response)JsonConvert.SerializeObject(playlist, new LinkJsonConverter());
                 response.ContentType = "application/json";
                 return response;
             };

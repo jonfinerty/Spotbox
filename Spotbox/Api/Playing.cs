@@ -13,7 +13,7 @@ namespace Spotbox.Api
             Get["/playing"] = x =>
             {
                 var track = spotify.GetCurrentTrack();
-                var response = (Response) JsonConvert.SerializeObject(track);
+                var response = (Response) JsonConvert.SerializeObject(track, new LinkJsonConverter());
                 response.ContentType = "application/json";
                 return response;
             };
