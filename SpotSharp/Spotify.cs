@@ -27,6 +27,9 @@ namespace SpotSharp
             new Task(StartMainSpotifyThread).Start();
 
             session.Login(username, password);
+            
+            playlistContainer = new PlaylistContainer(session);
+            _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
         }
 
         ~Spotify()
@@ -56,47 +59,35 @@ namespace SpotSharp
             }
 
             _logger.InfoFormat("Playing first playlist found");
-            var playlist = new Playlist(playlistInfo.PlaylistPtr, session);
-            SetCurrentPlaylist(playlist);
-            playlist.Play();
+            SetCurrentPlaylist(playlistInfo.Link);
+            Play();
         }
 
-        public PlaylistInfo GetPlaylistInfo(string playlistName)
+        public PlaylistInfo GetPlaylistInfo(Link playlistLink)
         {
-            var playlistInfos = GetAllPlaylists();
-            var matchingPlaylistInfo = playlistInfos.FirstOrDefault(info => info.Name.ToLower() == playlistName.ToLower());
-            return matchingPlaylistInfo;
+            return playlistContainer.PlaylistInfos.FirstOrDefault(playlistInfo => playlistInfo.Link.Equals(playlistLink));
         }
 
         public List<PlaylistInfo> GetAllPlaylists()
         {
-            if (session.SessionPtr == IntPtr.Zero)
-            {
-                throw new InvalidOperationException("No valid session.");
-            }
-
-            if (playlistContainer == null)
-            {
-                playlistContainer = new PlaylistContainer(session);
-                _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
-            }
-            
             return playlistContainer.PlaylistInfos;
         }
 
-        public Track SearchForTrack(string trackSearch)
+        public List<Track> SearchForTracks(string searchTerms)
         {
+            var tracksFound = new List<Track>();
             searchCompleteDelegate = SearchComplete;
-            var searchPtr = libspotify.sp_search_create(session.SessionPtr, trackSearch, 0, 1, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
+            var searchPtr = libspotify.sp_search_create(session.SessionPtr, searchTerms, 0, 10, 0, 0, 0, 0, 0, 0, sp_search_type.SP_SEARCH_STANDARD, Marshal.GetFunctionPointerForDelegate(searchCompleteDelegate), IntPtr.Zero);
             Wait.For(() => libspotify.sp_search_is_loaded(searchPtr) && libspotify.sp_search_error(searchPtr) == libspotify.sp_error.OK);
 
-            if (libspotify.sp_search_num_tracks(searchPtr) > 0)
+            var tracksFoundCount = libspotify.sp_search_num_tracks(searchPtr);
+            for (var i = 0; i < tracksFoundCount; i++)
             {
-                var track = new Track(libspotify.sp_search_track(searchPtr, 0), session);
-                return track;
+                var track = new Track(libspotify.sp_search_track(searchPtr, i), session);
+                tracksFound.Add(track);
             }
 
-            return null;
+            return tracksFound;
         }
 
         public Playlist GetCurrentPlaylist()
@@ -104,15 +95,34 @@ namespace SpotSharp
             return currentPlaylist;
         }
 
-        public void SetCurrentPlaylist(Playlist playlist)
+        public bool SetCurrentPlaylist(Link playlistLink)
         {
+            var playlistInfo = GetPlaylistInfo(playlistLink);
+            if (playlistInfo != null)
+            {
+                libspotify.sp_playlistcontainer_add_playlist(playlistContainer.PlaylistContainerPtr, playlistLink.LinkPtr);
+                Wait.For(() =>
+                {
+                    playlistInfo = GetPlaylistInfo(playlistLink);
+                    return playlistInfo != null;
+                });
+                
+            }
+
+            if (playlistInfo == null)
+            {
+                return false;
+            }
+
             if (currentPlaylist != null)
             {
                 currentPlaylist.playlistChanged = null;
             }
 
-            currentPlaylist = playlist;
+            currentPlaylist = playlistInfo.GetPlaylist();
+            _logger.InfoFormat("Current playlist set to: {0}", currentPlaylist.Metadata.Name);
             currentPlaylist.playlistChanged = PlaylistChanged;
+            return true;
         }
 
         private void StartMainSpotifyThread()

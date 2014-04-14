@@ -96,10 +96,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\Controls.cs" />
-    <Compile Include="Api\Models\SimpleInput.cs" />
+    <Compile Include="Api\Models\SearchQueryModel.cs" />
+    <Compile Include="Api\Models\LinkModel.cs" />
     <Compile Include="Api\Playing.cs" />
     <Compile Include="Api\Playlist.cs" />
     <Compile Include="Api\Playlists.cs" />
+    <Compile Include="Api\Search.cs" />
     <Compile Include="Api\Speak.cs" />
     <Compile Include="PushHub.cs" />
     <Compile Include="Settings.Designer.cs">

@@ -29,6 +29,8 @@ namespace SpotSharp
 
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+        private bool playerLoaded = false;
+
         public Session(Spotify spotify, byte[] appkey)
         {
             _spotify = spotify;
@@ -124,45 +126,9 @@ namespace SpotSharp
 
         public void Play(Track track, EndOfTrackCallbackDelegate endOfTrackCallbackDelegate)
         {
-            _waveOutDevice.PlaybackStopped -= playbackStoppedHandler;
-
-            var wasPlaying = _waveOutDevice.PlaybackState != PlaybackState.Paused;
-
-            _waveOutDevice.Stop();
-            _waveOutDevice.Dispose();
-
             endOfTrackCallback = endOfTrackCallbackDelegate;
 
-
-            _logger.InfoFormat("Playing track: {0} - {1}", track.Name, string.Join(",", track.Artists));
-            
-            if (_spotify.TrackChanged != null)
-            {
-                _spotify.TrackChanged(track);
-            }
-
-            _waveOutDevice = new WaveOutEvent {DesiredLatency = 200};
-            _waveProvider.ClearBuffer();
-            _waveProvider.SetBufferFinished(false);
-
-            StartLoadingTrackAudio(track.TrackPtr);
-
-            _waveOutDevice.Init(_waveProvider);
-
-            if (wasPlaying)
-            {
-                _waveOutDevice.Play();
-            }
-
-            _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
-        }
-
-        private void StartLoadingTrackAudio(IntPtr trackPtr)
-        {
-            libspotify.sp_session_player_play(SessionPtr, false);
-            libspotify.sp_session_player_unload(SessionPtr);
-
-            var avail = libspotify.sp_track_get_availability(SessionPtr, trackPtr);
+            var avail = libspotify.sp_track_get_availability(SessionPtr, track.TrackPtr);
 
             if (avail != libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
             {
@@ -175,6 +141,44 @@ namespace SpotSharp
                 return;
             }
 
+            _waveOutDevice.PlaybackStopped -= playbackStoppedHandler;
+
+            var wasPlaying = _waveOutDevice.PlaybackState != PlaybackState.Paused;
+
+            _waveOutDevice.Stop();
+            _waveOutDevice.Dispose();
+
+            _logger.InfoFormat("Playing track: {0} - {1}", track.Name, string.Join(",", track.Artists));
+            
+            if (_spotify.TrackChanged != null)
+            {
+                _spotify.TrackChanged(track);
+            }
+
+            _waveOutDevice = new WaveOutEvent {DesiredLatency = 200};
+            _waveProvider.ClearBuffer();
+            _waveProvider.SetBufferFinished(false);
+            _waveOutDevice.Init(_waveProvider);
+
+            StartLoadingTrackAudio(track.TrackPtr);
+
+            if (wasPlaying)
+            {
+                _waveOutDevice.Play();
+            }
+
+            _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
+        }
+
+        private void StartLoadingTrackAudio(IntPtr trackPtr)
+        {
+            if (playerLoaded)
+            {
+                libspotify.sp_session_player_play(SessionPtr, false);
+                libspotify.sp_session_player_unload(SessionPtr);
+                playerLoaded = false;
+            }
+
             var error = libspotify.sp_session_player_load(SessionPtr, trackPtr);
 
             if (error != libspotify.sp_error.OK)
@@ -184,11 +188,14 @@ namespace SpotSharp
                 {
                     endOfTrackCallback();
                 }
-
+                playerLoaded = false;
                 return;
             }
 
+            playerLoaded = true;
+
             libspotify.sp_session_player_play(SessionPtr, true);
+            
         }
 
         #region Callbacks

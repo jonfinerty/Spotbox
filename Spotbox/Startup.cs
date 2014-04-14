@@ -72,7 +72,7 @@ namespace Spotbox
 
         private void SavePlaylistPositionToSettings(Playlist playlist)
         {
-            Settings.Default.CurrentPlaylistName = playlist.Metadata.Name;
+            Settings.Default.CurrentPlaylistLink = playlist.Link.ToString();
             Settings.Default.CurrentPlaylistPosition = playlist.CurrentPosition;
             Settings.Default.Save();
         }

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-
+using System.Web.UI;
 using Microsoft.Owin.Hosting;
 
 using Nancy.TinyIoc;
@@ -37,17 +37,13 @@ namespace Spotbox
         {
             var spotify = TinyIoCContainer.Current.Resolve<Spotify>();
 
-            var lastPlaylistName = Settings.Default.CurrentPlaylistName;
-            if (lastPlaylistName != string.Empty)
+            var lastPlaylistLink = Settings.Default.CurrentPlaylistLink;
+            if (lastPlaylistLink != string.Empty)
             {
-                var foundPlaylistInfo = spotify.GetPlaylistInfo(lastPlaylistName);
-                if (foundPlaylistInfo != null)
+                var link = new Link(lastPlaylistLink);
+                var playlistSet = spotify.SetCurrentPlaylist(link);
+                if (playlistSet)
                 {
-                    var lastPosition = Settings.Default.CurrentPlaylistPosition;
-
-                    var playlist = foundPlaylistInfo.GetPlaylist();
-                    spotify.SetCurrentPlaylist(playlist);
-                    spotify.SetCurrentPlaylistPosition(lastPosition);
                     spotify.Play();
                     return;
                 }

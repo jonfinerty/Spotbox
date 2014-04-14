@@ -24,6 +24,7 @@ namespace SpotSharp
             {
                 if (value >= 0 && value < Tracks.Count)
                 {
+                    _logger.InfoFormat("Playlist: {0} position set to: {1}", Metadata.Name, value);
                     _currentPosition = value;
 
                     if (playlistChanged != null)
@@ -85,8 +86,14 @@ namespace SpotSharp
             }
         }
 
-        public void AddTrack(Track track)
+        public bool AddTrack(Link trackLink)
         {
+            var trackPtr = libspotify.sp_link_as_track(trackLink.LinkPtr);
+            if (trackPtr == IntPtr.Zero)
+            {
+                return false;
+            }
+            var track = new Track(trackPtr, session);
             _logger.InfoFormat("Adding track: {0} to playlist: {1}", track.Name, Metadata.Name);
             var tracksPtr = IntPtr.Zero;
             
@@ -97,6 +104,7 @@ namespace SpotSharp
             tracksPtr = Marshal.AllocHGlobal(size);
             Marshal.Copy(array, 0, tracksPtr, array.Length);
             libspotify.sp_playlist_add_tracks(PlaylistPtr, tracksPtr, 1, Metadata.TrackCount, session.SessionPtr);
+            return true;
         }
 
         internal void Play()
@@ -195,10 +203,23 @@ namespace SpotSharp
         {
             foreach (var trackPtr in tracksPtr)
             {
+                if (libspotify.sp_track_get_availability(session.SessionPtr, trackPtr) !=
+                    libspotify.sp_availability.SP_TRACK_AVAILABILITY_AVAILABLE)
+                {
+                    return;
+                }
+
                 var newTrack = new Track(trackPtr, session);
 
                 Tracks.Insert(position, newTrack);
                 _logger.InfoFormat("Track sync added: {0}", newTrack.Name);
+
+
+                if (newTrack.Name == string.Empty)
+                {
+                    Console.WriteLine("blah");
+                    return;
+                }
 
                 if (position <= CurrentPosition)
                 {

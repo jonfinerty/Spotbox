@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 using libspotifydotnet;
 
@@ -69,6 +70,11 @@ namespace SpotSharp
         public Link(string link)
         {
             LinkPtr = libspotify.sp_link_create_from_string(link);
+            if (LinkPtr == IntPtr.Zero)
+            {
+                return;
+            }
+
             var spotLinkType = libspotify.sp_link_type(LinkPtr);
             switch (spotLinkType)
             {
@@ -110,8 +116,21 @@ namespace SpotSharp
             }
         }
 
+        ~Link()
+        {
+            if (LinkPtr != IntPtr.Zero)
+            {
+                libspotify.sp_link_release(LinkPtr);
+            }
+        }
+
         public override string ToString()
         {
+            if (LinkPtr == IntPtr.Zero)
+            {
+                return string.Empty;
+            }
+
             const int bufferLength = 200;
             var bufferPointer = Marshal.AllocHGlobal(bufferLength);
 
@@ -142,12 +161,22 @@ namespace SpotSharp
             return Encoding.UTF8.GetString(buffer);
         }
 
-        ~Link()
+        public override int GetHashCode()
         {
-            if (LinkPtr != IntPtr.Zero)
-            {
-                libspotify.sp_link_release(LinkPtr);
-            }
+            return (ToString().GetHashCode());
+        }
+
+        protected bool Equals(Link other)
+        {
+            return LinkPtr.Equals(other.LinkPtr) && LinkType == other.LinkType;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((Link)obj);
         }
     }
 }

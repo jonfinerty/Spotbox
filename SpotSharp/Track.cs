@@ -18,7 +18,7 @@ namespace SpotSharp
             Wait.For(IsLoaded);
             SetTrackMetaData();
         }
-        
+
         internal IntPtr TrackPtr { get; private set; }
 
         public string Name { get; private set; }

@@ -1,6 +1,7 @@
-﻿using Nancy;
+﻿using System;
+using Nancy;
 using Nancy.ModelBinding;
-
+using Nancy.Session;
 using Newtonsoft.Json;
 
 using Spotbox.Api.Models;
@@ -22,30 +23,34 @@ namespace Spotbox.Api
 
             Post["/playlist"] = x =>
             {
-                var trackSearch = this.Bind<SimpleInput>();
-                var track = spotify.SearchForTrack(trackSearch.Value);
+                var linkModel = this.Bind<LinkModel>();
 
-                if (track != null)
+                if (linkModel.Link != null)
                 {
-                    spotify.GetCurrentPlaylist().AddTrack(track);
-                    var response = (Response)JsonConvert.SerializeObject(track);
-                    response.ContentType = "application/json";
-                    return response;
+                    var trackLink = new Link(linkModel.Link);
+                    var trackAdded = spotify.GetCurrentPlaylist().AddTrack(trackLink);
+                    if (trackAdded)
+                    {
+                        return HttpStatusCode.NoContent;
+                    }
                 }
 
-                return HttpStatusCode.NotFound;
+                return HttpStatusCode.BadRequest;
             };
 
             Put["/playlist"] = x =>
             {
-                var playlistName = this.Bind<SimpleInput>();
-                var playlistInfo = spotify.GetPlaylistInfo(playlistName.Value);
-                
-                if (playlistInfo != null)
+                var linkModel = this.Bind<LinkModel>();
+                if (linkModel.Link != null)
                 {
-                    spotify.SetCurrentPlaylist(playlistInfo.GetPlaylist());
-                    spotify.Play();
-                    return HttpStatusCode.OK;
+                    var playlistLink = new Link(linkModel.Link);
+                    var playlistSet = spotify.SetCurrentPlaylist(playlistLink);
+
+                    if (playlistSet)
+                    {
+                        spotify.Play();
+                        return HttpStatusCode.OK;
+                    }                    
                 }
 
                 return HttpStatusCode.BadRequest;

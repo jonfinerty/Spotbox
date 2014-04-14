@@ -26,12 +26,12 @@ namespace Spotbox {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string CurrentPlaylistName {
+        public string CurrentPlaylistLink {
             get {
-                return ((string)(this["CurrentPlaylistName"]));
+                return ((string)(this["CurrentPlaylistLink"]));
             }
             set {
-                this["CurrentPlaylistName"] = value;
+                this["CurrentPlaylistLink"] = value;
             }
         }
         
