@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{12FF0A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotSharp", "SpotSharp\SpotSharp.csproj", "{08A36564-FE12-449F-92D9-42EE27EA68AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotSharpTests", "SpotSharpTests\SpotSharpTests.csproj", "{4A482190-F623-4D45-8A79-DA1BB7E0D451}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +30,10 @@ Global
 		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08A36564-FE12-449F-92D9-42EE27EA68AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A482190-F623-4D45-8A79-DA1BB7E0D451}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A482190-F623-4D45-8A79-DA1BB7E0D451}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A482190-F623-4D45-8A79-DA1BB7E0D451}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A482190-F623-4D45-8A79-DA1BB7E0D451}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

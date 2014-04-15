@@ -10,7 +10,7 @@ using log4net;
 
 namespace SpotSharp
 {
-    public class Spotify
+    public class Spotify : IDisposable
     {
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -20,26 +20,38 @@ namespace SpotSharp
 
         private bool _shutDown;
 
-        public Spotify(byte[] appkey, string username, string password)
+        public Spotify(byte[] appkey)
         {
             session = new Session(this, appkey);
 
             new Task(StartMainSpotifyThread).Start();
-
-            session.Login(username, password);
-            
-            playlistContainer = new PlaylistContainer(session);
-            _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
         }
 
-        ~Spotify()
+        public void Dispose()
         {
             libspotify.sp_session_player_unload(session.SessionPtr);
-            libspotify.sp_session_logout(session.SessionPtr);
+            
+            session.Dispose();
 
             playlistContainer = null;
 
             _shutDown = true;
+        }
+
+        public bool Login(string username, string password)
+        {
+            var loggedIn = session.Login(username, password);
+
+            if (loggedIn)
+            {
+                LoggedInUser = new User(libspotify.sp_session_user(session.SessionPtr));
+                _logger.InfoFormat("Logged in as user: {0}", LoggedInUser.DisplayName);
+                playlistContainer = new PlaylistContainer(session);
+                _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
+                return true;
+            }
+
+            return false;
         }
 
         public TrackChangedDelegate TrackChanged;
@@ -47,6 +59,7 @@ namespace SpotSharp
         public delegate void TrackChangedDelegate(Track newTrack);
 
         public Playlist.PlaylistChangedDelegate PlaylistChanged;
+        public User LoggedInUser { get; private set; }
 
         public void PlayDefaultPlaylist()
         {
@@ -129,7 +142,7 @@ namespace SpotSharp
         {
             while (true)
             {
-                if (_shutDown)
+                if (_shutDown || session.SessionPtr == IntPtr.Zero)
                 {
                     break;
                 }
