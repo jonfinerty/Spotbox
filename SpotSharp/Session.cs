@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using log4net;
@@ -379,6 +380,7 @@ namespace SpotSharp
 
         #endregion
 
+        [HandleProcessCorruptedStateExceptions]
         public void Dispose()
         {
             if (_loggedIn)
@@ -388,8 +390,15 @@ namespace SpotSharp
             }
 
             libspotify.sp_session_player_unload(SessionPtr);
-            libspotify.sp_session_flush_caches(SessionPtr);            
-            //libspotify.sp_session_release(ref SessionPtr);
+            libspotify.sp_session_flush_caches(SessionPtr);
+            try
+            {
+                libspotify.sp_session_release(ref SessionPtr);
+            }
+            catch (AccessViolationException exception)
+            {
+                _logger.ErrorFormat("Session did not release correctly: {0}", exception);
+            }
         }
     }
 }
