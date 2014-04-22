@@ -27,11 +27,14 @@ namespace Spotbox.Api
 
                 if (linkModel.Link != null)
                 {
-                    var trackLink = new Link(linkModel.Link);
-                    var trackAdded = spotify.GetCurrentPlaylist().AddTrack(trackLink);
-                    if (trackAdded)
+                    var trackLink = Link.Create(linkModel.Link);
+                    if (trackLink != null && trackLink.LinkType == LinkType.Track)
                     {
-                        return HttpStatusCode.NoContent;
+                        var trackAdded = spotify.GetCurrentPlaylist().AddTrack(trackLink);
+                        if (trackAdded)
+                        {
+                            return HttpStatusCode.NoContent;
+                        }
                     }
                 }
 
@@ -43,14 +46,17 @@ namespace Spotbox.Api
                 var linkModel = this.Bind<LinkModel>();
                 if (linkModel.Link != null)
                 {
-                    var playlistLink = new Link(linkModel.Link);
-                    var playlistSet = spotify.SetCurrentPlaylist(playlistLink);
-
-                    if (playlistSet)
+                    var playlistLink = Link.Create(linkModel.Link);
+                    if (playlistLink != null && playlistLink.LinkType == LinkType.Playlist)
                     {
-                        spotify.Play();
-                        return HttpStatusCode.OK;
-                    }                    
+                        var playlistSet = spotify.SetCurrentPlaylist(playlistLink);
+
+                        if (playlistSet)
+                        {
+                            spotify.Play();
+                            return HttpStatusCode.OK;
+                        }
+                    }
                 }
 
                 return HttpStatusCode.BadRequest;

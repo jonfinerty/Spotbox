@@ -97,28 +97,36 @@ namespace SpotSharp
 
         internal IntPtr PlaylistPtr { get; private set; }
 
-        private List<Track> Tracks { get; set; }
+        private List<Track> _tracks;
 
-        public IEnumerable<Track> GetTracks()
+        public IEnumerable<Track> Tracks
         {
-            return Tracks.AsReadOnly();
+            get
+            {
+                if (_tracks != null)
+                {
+                    return _tracks.AsReadOnly();
+                }
+
+                return null;
+            }
         }
 
         private void LoadTracks()
         {
-            if (Tracks != null)
+            if (_tracks != null)
             {
                 return;
             }
 
             AddCallbacks();
 
-            Tracks = new List<Track>();
+            _tracks = new List<Track>();
 
             for (var i = 0; i < TrackCount; i++)
             {
                 var trackPtr = libspotify.sp_playlist_track(PlaylistPtr, i);
-                Tracks.Add(new Track(trackPtr, session));
+                _tracks.Add(new Track(trackPtr, session));
             }
         }
 
@@ -148,7 +156,7 @@ namespace SpotSharp
         internal void Play()
         {
             LoadTracks();
-            var track = Tracks[CurrentPosition];
+            var track = _tracks[CurrentPosition];
             session.Play(track, PlayNextTrack);
         }
 
@@ -169,7 +177,7 @@ namespace SpotSharp
         internal Track GetCurrentTrack()
         {
             LoadTracks();
-            return Tracks[CurrentPosition];
+            return _tracks[CurrentPosition];
         }
 
         #region Callbacks
@@ -253,7 +261,7 @@ namespace SpotSharp
 
                 var newTrack = new Track(trackPtr, session);
 
-                Tracks.Insert(position, newTrack);
+                _tracks.Insert(position, newTrack);
                 _logger.InfoFormat("Track sync added: {0}", newTrack.Name);
 
 
@@ -281,8 +289,8 @@ namespace SpotSharp
                 var trackIndex = (int)trackPtr;
                 for (var i = 0; i < trackCount; i++)
                 {
-                    _logger.InfoFormat("Track sync removed: {0}", Tracks[trackIndex].Name);
-                    Tracks.RemoveAt(trackIndex);
+                    _logger.InfoFormat("Track sync removed: {0}", _tracks[trackIndex].Name);
+                    _tracks.RemoveAt(trackIndex);
                     TrackCount--;
                     
                     if (CurrentPosition >= TrackCount)
@@ -333,14 +341,14 @@ namespace SpotSharp
                 }
 
                 // move tracks
-                var movingTracks = Tracks.GetRange(tracksIndex, trackCount);
-                Tracks.RemoveRange(tracksIndex, trackCount);
+                var movingTracks = _tracks.GetRange(tracksIndex, trackCount);
+                _tracks.RemoveRange(tracksIndex, trackCount);
                 if (newPosition > tracksIndex)
                 {
                     newPosition = newPosition - trackCount;
                 }
 
-                Tracks.InsertRange(newPosition, movingTracks);
+                _tracks.InsertRange(newPosition, movingTracks);
             }
         }
 

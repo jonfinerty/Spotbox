@@ -40,12 +40,16 @@ namespace Spotbox
             var lastPlaylistLink = Settings.Default.CurrentPlaylistLink;
             if (lastPlaylistLink != string.Empty)
             {
-                var link = new Link(lastPlaylistLink);
-                var playlistSet = spotify.SetCurrentPlaylist(link);
-                if (playlistSet)
+                var link = Link.Create(lastPlaylistLink);
+                 
+                if (link != null)
                 {
-                    spotify.Play();
-                    return;
+                    var playlistSet = spotify.SetCurrentPlaylist(link);
+                    if (playlistSet)
+                    {
+                        spotify.Play();
+                        return;
+                    }
                 }
             }
 

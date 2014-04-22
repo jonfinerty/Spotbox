@@ -62,7 +62,7 @@ namespace SpotSharp
 
         public void Logout()
         {
-            if (LoggedIn)
+            if (libspotify.sp_session_connectionstate(session.SessionPtr) != libspotify.sp_connectionstate.LOGGED_OUT)
             {
                 session.Logout();
                 LoggedInUser = null;

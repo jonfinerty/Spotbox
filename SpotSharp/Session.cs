@@ -35,7 +35,7 @@ namespace SpotSharp
         public Session(SpotSharp spotify, byte[] appkey)
         {
             _spotify = spotify;
-            //_waveOutDevice = new WaveOutEvent { DesiredLatency = 200 };
+            _waveOutDevice = new WaveOutEvent { DesiredLatency = 200 };
 
             playbackStoppedHandler = (sender, args) =>
             {
@@ -80,9 +80,9 @@ namespace SpotSharp
             SessionPtr = sessionPtr;
             libspotify.sp_session_set_connection_type(sessionPtr, libspotify.sp_connection_type.SP_CONNECTION_TYPE_WIRED);
 
-/*            _waveProvider = new HaltableBufferedWaveProvider(waveFormat);
+            _waveProvider = new HaltableBufferedWaveProvider(waveFormat);
             _waveOutDevice.Init(_waveProvider);
-            _waveOutDevice.PlaybackStopped += playbackStoppedHandler;*/
+            _waveOutDevice.PlaybackStopped += playbackStoppedHandler;
 
         }
 
