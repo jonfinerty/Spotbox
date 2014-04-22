@@ -11,9 +11,8 @@ namespace SpotSharp
         Album = 1,
         Artist = 2,
         Search = 3,
-        Playlist = 4,
-        AlbumCover = 5,
-        User = 6
+        Playlist = 4,        
+        User = 5
     }
 
     public class Link
@@ -53,11 +52,6 @@ namespace SpotSharp
                     LinkPtr = libspotify.sp_link_create_from_user(objectPtr);
                     break;
                 }
-                case LinkType.AlbumCover:
-                {
-                    LinkPtr = libspotify.sp_link_create_from_album_cover(objectPtr);
-                    break;
-                }
                 case LinkType.Playlist:
                 {
                     LinkPtr = libspotify.sp_link_create_from_playlist(objectPtr);
@@ -80,11 +74,6 @@ namespace SpotSharp
                 case libspotify.sp_linktype.SP_LINKTYPE_ALBUM:
                     {
                         LinkType = LinkType.Album;
-                        break;
-                    }
-                case libspotify.sp_linktype.SP_LINKTYPE_IMAGE:
-                    {
-                        LinkType = LinkType.AlbumCover;
                         break;
                     }
                 case libspotify.sp_linktype.SP_LINKTYPE_ARTIST:

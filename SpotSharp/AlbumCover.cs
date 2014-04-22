@@ -5,8 +5,7 @@ using libspotifydotnet;
 namespace SpotSharp 
 {
     public class AlbumCover
-    {
-        public Link Link { get; private set; }
+    {        
         public byte[] ImageBytes { get; private set; }        
 
         internal AlbumCover(IntPtr albumPtr, Session session)
@@ -17,7 +16,6 @@ namespace SpotSharp
 
             // sp_image_loaded seems to always be returning true, check for bytes returned
             Wait.For(LoadImageBytes);
-            Link = new Link(coverPtr, LinkType.AlbumCover);
         }
 
         ~AlbumCover()
