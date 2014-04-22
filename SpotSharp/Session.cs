@@ -400,5 +400,10 @@ namespace SpotSharp
                 _logger.ErrorFormat("Session did not release correctly: {0}", exception);
             }
         }
+
+        public User GetCurrentUser()
+        {
+            return new User(libspotify.sp_session_user(SessionPtr));
+        }
     }
 }

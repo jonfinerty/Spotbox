@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
-MinimumVisualStudioVersion = 10.0.40219.1
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spotbox", "Spotbox\Spotbox.csproj", "{150E7D89-C3DA-4EFA-82E4-1FA95A24538F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{12FF0A2F-E2B8-4414-A96C-487210E9FD84}"
@@ -16,7 +14,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotSharp", "SpotSharp\Spot
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpotSharpTests", "SpotSharpTests\SpotSharpTests.csproj", "{4A482190-F623-4D45-8A79-DA1BB7E0D451}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6E9AD808-6E1E-4C8C-AFDA-34DDA258E357}"
+	ProjectSection(SolutionItems) = preProject
+		Spotbox.vsmdi = Spotbox.vsmdi
+		SpotSharpTests.testsettings = SpotSharpTests.testsettings
+	EndProjectSection
+EndProject
 Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = Spotbox.vsmdi
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU

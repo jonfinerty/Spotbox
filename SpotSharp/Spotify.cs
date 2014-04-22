@@ -44,7 +44,7 @@ namespace SpotSharp
 
             if (loggedIn)
             {
-                LoggedInUser = new User(libspotify.sp_session_user(session.SessionPtr));
+                LoggedInUser = session.GetCurrentUser();
                 _logger.InfoFormat("Logged in as user: {0}", LoggedInUser.DisplayName);
                 playlistContainer = new PlaylistContainer(session);
                 _logger.InfoFormat("Found {0} playlists", playlistContainer.PlaylistInfos.Count);
@@ -60,6 +60,14 @@ namespace SpotSharp
 
         public Playlist.PlaylistChangedDelegate PlaylistChanged;
         public User LoggedInUser { get; private set; }
+
+        public bool LoggedIn
+        {
+            get
+            {
+                return libspotify.sp_session_connectionstate(session.SessionPtr) == libspotify.sp_connectionstate.LOGGED_IN;
+            }
+        }
 
         public void PlayDefaultPlaylist()
         {
@@ -215,6 +223,15 @@ namespace SpotSharp
                 return currentPlaylist.GetCurrentTrack();
             }
             return null;
+        }
+
+        public void Logout()
+        {
+            if (LoggedIn)
+            {
+                session.Logout();
+                LoggedInUser = null;
+            }
         }
     }
 }

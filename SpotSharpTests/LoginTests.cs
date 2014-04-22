@@ -1,7 +1,6 @@
 ﻿using System.Configuration;
-using System.IO;
+
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SpotSharp;
 
 namespace SpotSharpTests
 {
@@ -9,32 +8,29 @@ namespace SpotSharpTests
     public class LoginTests
     {
         [TestMethod]
-        public void SuccessfulLogin()
+        public void LoggingIn()
         {
-            using (var spotify = new Spotify(spotifyApiKey))
-            {
-                spotify.Login(spotifyUsername, spotifyPassword);
+            var spotify = TestSetup.LoggedOutSpotbox();
+            spotify.Login(spotifyUsername, spotifyPassword);
 
-                var loggedInUser = spotify.LoggedInUser;
-                Assert.AreEqual(loggedInUser.CanonicalName, spotifyUsername, "Logged in user's canonical name should be equal the username logged in with");
-                Assert.IsTrue(loggedInUser.DisplayName.Length > 0, "Logged in user should have a display name");
-            }
+            var loggedInUser = spotify.LoggedInUser;
+            Assert.AreEqual(loggedInUser.CanonicalName, spotifyUsername, "Logged in user's canonical name should be equal the username logged in with");
+            Assert.IsTrue(loggedInUser.DisplayName.Length > 0, "Logged in user should have a display name");
         }
 
         [TestMethod]
-        public void IncorrectPassword()
+        public void LoggingOut()
         {
-            using (var spotify = new Spotify(spotifyApiKey))
-            {
-                var loggedIn = spotify.Login(spotifyUsername, "wrong-password");
+            var spotify = TestSetup.LoggedInSpotbox();
+            spotify.Logout();
 
-                Assert.IsFalse(loggedIn, "Should not have logged in");
-                Assert.IsNull(spotify.LoggedInUser, "should not have a logged in user");
-            }
-        }
+            var loggedInUser = spotify.LoggedInUser;
 
-        byte[] spotifyApiKey = File.ReadAllBytes(ConfigurationManager.AppSettings["SpotifyApiKeyPath"]);
-        string spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
-        string spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
+            Assert.IsNull(loggedInUser, "Should not have a logged in user");            
+        }        
+
+        readonly string spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
+
+        readonly string spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
     }
 }
