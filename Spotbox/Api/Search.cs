@@ -8,7 +8,7 @@ namespace Spotbox.Api
 {
     public class Search : NancyModule
     {
-        public Search(Spotify spotify)
+        public Search(SpotSharp.SpotSharp spotify)
         {
             Post["/search"] = x =>
             {

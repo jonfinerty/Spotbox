@@ -11,7 +11,7 @@ namespace SpotSharp
 {
     internal class Session : IDisposable
     {
-        private readonly Spotify _spotify;
+        private readonly SpotSharp _spotify;
         public IntPtr SessionPtr;
 
         const int _sampleRate = 44100;
@@ -32,7 +32,7 @@ namespace SpotSharp
 
         private bool playerLoaded;
 
-        public Session(Spotify spotify, byte[] appkey)
+        public Session(SpotSharp spotify, byte[] appkey)
         {
             _spotify = spotify;
             //_waveOutDevice = new WaveOutEvent { DesiredLatency = 200 };
@@ -103,7 +103,13 @@ namespace SpotSharp
 
         public void Logout() 
         {
-            libspotify.sp_session_logout(SessionPtr);
+            var error = libspotify.sp_session_logout(SessionPtr);
+            if (error != libspotify.sp_error.OK)
+            {
+                throw new Exception(string.Format("Libspotify error - {0}", error));
+            }
+
+            Wait.For(() => !_loggedIn);
         }
 
         public void Unpause()
@@ -379,8 +385,7 @@ namespace SpotSharp
         }
 
         #endregion
-
-        [HandleProcessCorruptedStateExceptions]
+        
         public void Dispose()
         {
             if (_loggedIn)
@@ -391,14 +396,7 @@ namespace SpotSharp
 
             libspotify.sp_session_player_unload(SessionPtr);
             libspotify.sp_session_flush_caches(SessionPtr);
-            try
-            {
-                libspotify.sp_session_release(ref SessionPtr);
-            }
-            catch (AccessViolationException exception)
-            {
-                _logger.ErrorFormat("Session did not release correctly: {0}", exception);
-            }
+            libspotify.sp_session_release(ref SessionPtr);
         }
 
         public User GetCurrentUser()

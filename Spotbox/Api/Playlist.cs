@@ -11,7 +11,7 @@ namespace Spotbox.Api
 {
     public class Playlist : NancyModule
     {
-        public Playlist(Spotify spotify)
+        public Playlist(SpotSharp.SpotSharp spotify)
         {
             Get["/playlist"] = x =>
             {

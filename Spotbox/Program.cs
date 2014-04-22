@@ -35,7 +35,7 @@ namespace Spotbox
 
         public static void PlayLastPlayingPlaylist()
         {
-            var spotify = TinyIoCContainer.Current.Resolve<Spotify>();
+            var spotify = TinyIoCContainer.Current.Resolve<SpotSharp.SpotSharp>();
 
             var lastPlaylistLink = Settings.Default.CurrentPlaylistLink;
             if (lastPlaylistLink != string.Empty)

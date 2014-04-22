@@ -3,14 +3,12 @@ using System.IO;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using SpotSharp;
-
 namespace SpotSharpTests
 {
     [TestClass]
     public class TestSetup
     {
-        private static Spotify spotify;
+        private static SpotSharp.SpotSharp spotSharp;
 
         static readonly byte[] _spotifyApiKey = File.ReadAllBytes(ConfigurationManager.AppSettings["SpotifyApiKeyPath"]);
 
@@ -24,27 +22,39 @@ namespace SpotSharpTests
             // Ok, so.. turns out libspotify has issues shutting down/restart in the same process.
             // This means in order to test SpotSharp we will start and login to one instance at
             // the start of testing.
-            spotify = new Spotify(_spotifyApiKey);
+            spotSharp = new SpotSharp.SpotSharp(_spotifyApiKey);
         }
 
-        public static Spotify LoggedInSpotbox()
+        [AssemblyCleanup]
+        public static void FlushSpotSharp()
         {
-            if (spotify.LoggedIn == false)
+            if (spotSharp != null)
             {
-                spotify.Login(_spotifyUsername, _spotifyPassword);
+                spotSharp.Logout();
             }
 
-            return spotify;
+            // sigh, playlist don't seem to want to release
+            /*spotSharp.Dispose();*/
         }
 
-        public static Spotify LoggedOutSpotbox()
+        public static SpotSharp.SpotSharp LoggedInSpotbox()
         {
-            if (spotify.LoggedIn)
+            if (spotSharp.LoggedIn == false)
             {
-                spotify.Logout();
+                spotSharp.Login(_spotifyUsername, _spotifyPassword);
             }
 
-            return spotify;
+            return spotSharp;
+        }
+
+        public static SpotSharp.SpotSharp LoggedOutSpotbox()
+        {
+            if (spotSharp.LoggedIn)
+            {
+                spotSharp.Logout();
+            }
+
+            return spotSharp;
         }
     }
 }

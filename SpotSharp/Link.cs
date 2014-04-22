@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
 using libspotifydotnet;
 
@@ -161,22 +160,38 @@ namespace SpotSharp
             return Encoding.UTF8.GetString(buffer);
         }
 
+        #region Equality Members
+
         public override int GetHashCode()
         {
-            return (ToString().GetHashCode());
+            return ToString().GetHashCode();
         }
 
         protected bool Equals(Link other)
         {
-            return LinkPtr.Equals(other.LinkPtr) && LinkType == other.LinkType;
+            return ToString().Equals(other.ToString());
         }
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != GetType())
+            {
+                return false;
+            }
+
             return Equals((Link)obj);
         }
+
+        #endregion
     }
 }

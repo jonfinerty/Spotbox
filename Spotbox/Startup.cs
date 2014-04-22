@@ -46,7 +46,7 @@ namespace Spotbox
             var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
             var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
 
-            var spotify = new Spotify(spotifyApiKey);
+            var spotify = new SpotSharp.SpotSharp(spotifyApiKey);
             spotify.Login(spotifyUsername, spotifyPassword);
 
             spotify.TrackChanged = BroadcastTrackChange;

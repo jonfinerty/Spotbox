@@ -11,7 +11,7 @@ namespace Spotbox
     {
         public void RequestTrack()
         {
-            var spotify = TinyIoCContainer.Current.Resolve<Spotify>();
+            var spotify = TinyIoCContainer.Current.Resolve<SpotSharp.SpotSharp>();
             var track = spotify.GetCurrentTrack();
             Clients.Caller.newTrack(JsonConvert.SerializeObject(track));
         }
