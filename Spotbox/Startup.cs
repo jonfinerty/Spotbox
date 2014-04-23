@@ -46,7 +46,8 @@ namespace Spotbox
             var spotifyUsername = ConfigurationManager.AppSettings["SpotifyUsername"];
             var spotifyPassword = ConfigurationManager.AppSettings["SpotifyPassword"];
 
-            var spotify = new Spotify(spotifyApiKey, spotifyUsername, spotifyPassword);
+            var spotify = new SpotSharp.SpotSharp(spotifyApiKey);
+            spotify.Login(spotifyUsername, spotifyPassword);
 
             spotify.TrackChanged = BroadcastTrackChange;
             spotify.PlaylistChanged = SavePlaylistPositionToSettings;
@@ -83,7 +84,7 @@ namespace Spotbox
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var link = (Link) value;
+            var link = (Link)value;
             writer.WriteValue(link.ToString());
         }
 
@@ -94,7 +95,7 @@ namespace Spotbox
 
         public override bool CanConvert(Type objectType)
         {
-            return (objectType == typeof (Link));
+            return objectType == typeof(Link);
         }
     }
 }

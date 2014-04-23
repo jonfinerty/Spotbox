@@ -7,7 +7,7 @@ using log4net;
 
 namespace SpotSharp
 {
-    public class PlaylistContainer
+    public class PlaylistContainer : IDisposable
     {
         private readonly Session session;
 
@@ -23,35 +23,41 @@ namespace SpotSharp
             AddCallbacks();
             Wait.For(() => libspotify.sp_playlistcontainer_is_loaded(PlaylistContainerPtr));
 
-            LoadPlaylistInfos();
+            LoadPlaylists();
         }
 
-        ~PlaylistContainer()
+        public void Dispose()
         {
+            foreach (var playlist in Playlists)
+            {
+                playlist.Dispose();
+            }
+
             libspotify.sp_playlistcontainer_remove_callbacks(PlaylistContainerPtr, _callbacksPtr, IntPtr.Zero);
+            libspotify.sp_playlistcontainer_release(PlaylistContainerPtr);
         }
 
         internal IntPtr PlaylistContainerPtr { get; private set; }
 
-        public List<PlaylistInfo> PlaylistInfos { get; private set; }
+        public List<Playlist> Playlists { get; private set; }
 
-        private void LoadPlaylistInfos()
+        private void LoadPlaylists()
         {
-            PlaylistInfos = new List<PlaylistInfo>();
+            Playlists = new List<Playlist>();
 
             var playlistCount = libspotify.sp_playlistcontainer_num_playlists(PlaylistContainerPtr);
 
             for (var i = 0; i < playlistCount; i++)
             {
                 var playlistType = libspotify.sp_playlistcontainer_playlist_type(PlaylistContainerPtr, i);
-                if ( playlistType != libspotify.sp_playlist_type.SP_PLAYLIST_TYPE_PLAYLIST)
+                if (playlistType != libspotify.sp_playlist_type.SP_PLAYLIST_TYPE_PLAYLIST)
                 {
                     continue;
                 }
 
                 var playlistPtr = libspotify.sp_playlistcontainer_playlist(PlaylistContainerPtr, i);
-                var playlistInfo = new PlaylistInfo(playlistPtr, session);
-                PlaylistInfos.Add(playlistInfo);
+                var playlist = new Playlist(playlistPtr, session);
+                Playlists.Add(playlist);
             }
         }
 
@@ -91,28 +97,28 @@ namespace SpotSharp
 
         private void PlaylistAdded(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            PlaylistInfos.Insert(position, new PlaylistInfo(playlistPtr, session));
+            Playlists.Insert(position, new Playlist(playlistPtr, session));
             _logger.InfoFormat("Playlist added at position {0}", position);
         }
 
         private void PlaylistMoved(IntPtr containerPtr, IntPtr playlistPtr, int oldPosition, int newPosition, IntPtr userDataPtr)
         {
-            var item = PlaylistInfos[oldPosition];
+            var item = Playlists[oldPosition];
 
-            PlaylistInfos.RemoveAt(oldPosition);
+            Playlists.RemoveAt(oldPosition);
 
             if (newPosition > oldPosition)
             {
                 newPosition--;
             }
 
-            PlaylistInfos.Insert(newPosition, item);
+            Playlists.Insert(newPosition, item);
             _logger.InfoFormat("Playlist moved from {0} to {1}", oldPosition, newPosition);
         }
 
         private void PlaylistRemoved(IntPtr containerPtr, IntPtr playlistPtr, int position, IntPtr userDataPtr)
         {
-            PlaylistInfos.RemoveAt(position);
+            Playlists.RemoveAt(position);
             _logger.InfoFormat("Playlist Removed from position {0}", position);
         }
 

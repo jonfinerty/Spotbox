@@ -5,7 +5,7 @@ namespace Spotbox.Api
 {
     public class Controls : NancyModule
     {
-        public Controls(Spotify spotify)
+        public Controls(SpotSharp.SpotSharp spotify)
         {
             Post["/play"] = x =>
             {

@@ -8,7 +8,7 @@ namespace Spotbox.Api
 {
     public class Speak : NancyModule
     {
-        public Speak(Spotify spotify)
+        public Speak(SpotSharp.SpotSharp spotify)
         {
             Post["/speak"] = x =>
             {

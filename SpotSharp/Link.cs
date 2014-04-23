@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
 using libspotifydotnet;
 
@@ -12,9 +11,8 @@ namespace SpotSharp
         Album = 1,
         Artist = 2,
         Search = 3,
-        Playlist = 4,
-        AlbumCover = 5,
-        User = 6
+        Playlist = 4,        
+        User = 5
     }
 
     public class Link
@@ -54,11 +52,6 @@ namespace SpotSharp
                     LinkPtr = libspotify.sp_link_create_from_user(objectPtr);
                     break;
                 }
-                case LinkType.AlbumCover:
-                {
-                    LinkPtr = libspotify.sp_link_create_from_album_cover(objectPtr);
-                    break;
-                }
                 case LinkType.Playlist:
                 {
                     LinkPtr = libspotify.sp_link_create_from_playlist(objectPtr);
@@ -67,9 +60,9 @@ namespace SpotSharp
             }
         }
 
-        public Link(string link)
+        private Link(string linkString)
         {
-            LinkPtr = libspotify.sp_link_create_from_string(link);
+            LinkPtr = libspotify.sp_link_create_from_string(linkString);
             if (LinkPtr == IntPtr.Zero)
             {
                 return;
@@ -79,41 +72,47 @@ namespace SpotSharp
             switch (spotLinkType)
             {
                 case libspotify.sp_linktype.SP_LINKTYPE_ALBUM:
-                {
-                    LinkType = LinkType.Album;
-                    break;
-                }
-                case libspotify.sp_linktype.SP_LINKTYPE_IMAGE:
-                {
-                    LinkType = LinkType.AlbumCover;
-                    break;
-                }
+                    {
+                        LinkType = LinkType.Album;
+                        break;
+                    }
                 case libspotify.sp_linktype.SP_LINKTYPE_ARTIST:
-                {
-                    LinkType = LinkType.Artist;
-                    break;
-                }
+                    {
+                        LinkType = LinkType.Artist;
+                        break;
+                    }
                 case libspotify.sp_linktype.SP_LINKTYPE_PLAYLIST:
-                {
-                    LinkType = LinkType.Playlist;
-                    break;
-                }
+                    {
+                        LinkType = LinkType.Playlist;
+                        break;
+                    }
                 case libspotify.sp_linktype.SP_LINKTYPE_SEARCH:
-                {
-                    LinkType = LinkType.Search;
-                    break;
-                }
+                    {
+                        LinkType = LinkType.Search;
+                        break;
+                    }
                 case libspotify.sp_linktype.SP_LINKTYPE_TRACK:
-                {
-                    LinkType = LinkType.Track;
-                    break;
-                }
+                    {
+                        LinkType = LinkType.Track;
+                        break;
+                    }
                 case libspotify.sp_linktype.SP_LINKTYPE_PROFILE:
-                {
-                    LinkType = LinkType.User;
-                    break;
-                }
+                    {
+                        LinkType = LinkType.User;
+                        break;
+                    }
             }
+        }
+
+        public static Link Create(string linkString)
+        {
+            var link = new Link(linkString);
+            if (link.LinkPtr != IntPtr.Zero)
+            {
+                return link;
+            }
+
+            return null;
         }
 
         ~Link()
@@ -131,10 +130,10 @@ namespace SpotSharp
                 return string.Empty;
             }
 
-            const int bufferLength = 200;
-            var bufferPointer = Marshal.AllocHGlobal(bufferLength);
+            const int BufferLength = 200;
+            var bufferPointer = Marshal.AllocHGlobal(BufferLength);
 
-            libspotify.sp_link_as_string(LinkPtr, bufferPointer, bufferLength);
+            libspotify.sp_link_as_string(LinkPtr, bufferPointer, BufferLength);
 
             if (bufferPointer == IntPtr.Zero)
             {
@@ -154,29 +153,45 @@ namespace SpotSharp
                 return string.Empty;
             }
 
-            var buffer = new byte[len - 1];
+            var buffer = new byte[len];
             Marshal.Copy(bufferPointer, buffer, 0, buffer.Length);
             Marshal.FreeHGlobal(bufferPointer);
 
             return Encoding.UTF8.GetString(buffer);
         }
 
+        #region Equality Members
+
         public override int GetHashCode()
         {
-            return (ToString().GetHashCode());
+            return ToString().GetHashCode();
         }
 
         protected bool Equals(Link other)
         {
-            return LinkPtr.Equals(other.LinkPtr) && LinkType == other.LinkType;
+            return ToString().Equals(other.ToString());
         }
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != GetType())
+            {
+                return false;
+            }
+
             return Equals((Link)obj);
         }
+
+        #endregion
     }
 }

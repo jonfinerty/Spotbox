@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using libspotifydotnet;
 using log4net;
@@ -8,9 +9,9 @@ using NAudio.Wave;
 
 namespace SpotSharp 
 {
-    internal class Session 
+    internal class Session : IDisposable
     {
-        private readonly Spotify _spotify;
+        private readonly SpotSharp _spotify;
         public IntPtr SessionPtr;
 
         const int _sampleRate = 44100;
@@ -29,9 +30,9 @@ namespace SpotSharp
 
         private static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private bool playerLoaded = false;
+        private bool playerLoaded;
 
-        public Session(Spotify spotify, byte[] appkey)
+        public Session(SpotSharp spotify, byte[] appkey)
         {
             _spotify = spotify;
             _waveOutDevice = new WaveOutEvent { DesiredLatency = 200 };
@@ -87,7 +88,7 @@ namespace SpotSharp
 
         public delegate void EndOfTrackCallbackDelegate();
 
-        public void Login(string username, string password)
+        public bool Login(string username, string password)
         {
             _logger.InfoFormat("Logging into spotify with credentials");
             _logger.InfoFormat("Username: {0}", username);
@@ -95,12 +96,20 @@ namespace SpotSharp
 
             libspotify.sp_session_login(SessionPtr, username, password, false, null);
 
-            Wait.For(() => libspotify.sp_session_connectionstate(SessionPtr) == libspotify.sp_connectionstate.LOGGED_IN);
+            Wait.For(() => _loggedIn);
+
+            return _loggedIn;
         }
 
         public void Logout() 
         {
-            libspotify.sp_session_logout(SessionPtr);
+            var error = libspotify.sp_session_logout(SessionPtr);
+            if (error != libspotify.sp_error.OK)
+            {
+                throw new Exception(string.Format("Libspotify error - {0}", error));
+            }
+
+            Wait.For(() => !_loggedIn);
         }
 
         public void Unpause()
@@ -233,6 +242,7 @@ namespace SpotSharp
         private StopPlaybackDelegate stopPlaybackDelegate;
         private StreamingErrorDelegate streamingErrorDelegate;
         private UserinfoUpdatedDelegate userinfoUpdatedDelegate;
+        private bool _loggedIn;
 
         private IntPtr AddCallbacks()
         {
@@ -304,11 +314,13 @@ namespace SpotSharp
         }
 
         private void LoggedIn(IntPtr sessionPtr, libspotify.sp_error error)
-        {   
+        {
+            _loggedIn = true;
         }
 
         private void LoggedOut(IntPtr sessionPtr)
         {
+            _loggedIn = false;
         }
 
         private void MessageToUser(IntPtr sessionPtr, string message)
@@ -373,5 +385,23 @@ namespace SpotSharp
         }
 
         #endregion
+        
+        public void Dispose()
+        {
+            if (_loggedIn)
+            {
+                libspotify.sp_session_logout(SessionPtr);
+                Wait.For(() => !_loggedIn);
+            }
+
+            libspotify.sp_session_player_unload(SessionPtr);
+            libspotify.sp_session_flush_caches(SessionPtr);
+            libspotify.sp_session_release(ref SessionPtr);
+        }
+
+        public User GetCurrentUser()
+        {
+            return new User(libspotify.sp_session_user(SessionPtr));
+        }
     }
 }

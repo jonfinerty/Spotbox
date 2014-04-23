@@ -8,7 +8,7 @@ namespace Spotbox.Api
 {
     public class Playing : NancyModule
     {
-        public Playing(Spotify spotify)
+        public Playing(SpotSharp.SpotSharp spotify)
         {
             Get["/playing"] = x =>
             {
